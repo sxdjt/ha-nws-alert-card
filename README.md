@@ -19,3 +19,5 @@ Example:  https://api.weather.gov/points/37.731,-102.9303
 
 The ```forecastZone:``` lists a URL, of which the zone ID is the last component, i.e. ```COZ097```
 
+---
+<img width="526" alt="Screenshot 2025-06-08 at 01 07 09" src="https://github.com/user-attachments/assets/a6f389c9-5619-43d3-adfd-b96e71625a40" />
