@@ -8,6 +8,7 @@ To find your NWS zone, go to https://www.weather.gov/pimar/PubZone and view stat
 The zone name format is ```ssZnnn``` where:
 
 ```ss``` = the 2-letter state abbreviation, e.g. ```AK``` or ```NY```
+
 ```nnn``` = the 3-digit zone number, e.g. ```001``` or ```329```
 
 The zone ID for Fairbanks, Alaska is ```AKZ844```. The zone ID for Las Vegas, Nevada is ```NVZ020```
