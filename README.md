@@ -12,3 +12,10 @@ The zone name format is ```ssZnnn``` where:
 ```nnn``` = the 3-digit zone number, e.g. ```001``` or ```329```
 
 The zone ID for Fairbanks, Alaska is ```AKZ844```. The zone ID for Las Vegas, Nevada is ```NVZ020```
+
+You can also use lat/long coordinates to determine the zone ID.  
+
+Example:  https://api.weather.gov/points/37.731,-102.9303
+
+The ```forecastZone:``` lists a URL, of which the zone ID is the last component, i.e. ```COZ097```
+
