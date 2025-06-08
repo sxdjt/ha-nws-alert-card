@@ -204,10 +204,10 @@ customElements.define('nws-alert-card', NWSAlertCard);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'nws-alert-card',
-  name: 'NWS Alert Card (Standalone)',
-  description: 'Displays active NWS weather alerts for a specified zone, fetching data directly.',
+  name: 'NWS Alert Card',
+  description: 'Displays active NWS weather alerts for a specified zone.',
   defaultConfig: {
-    nws_zone: 'WAZ308', // Default zone for easier setup
+    nws_zone: 'COZ097', 
     title: 'Current Weather Alerts',
     update_interval: 300, // Default to 5 minutes
     email: 'homeassistant_user@example.com', // Default email for User-Agent
