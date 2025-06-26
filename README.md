@@ -1,5 +1,8 @@
-# ha-nws-alert-card
-A simple card to show US National Weather Service alerts for a given zone
+# US National Weather Service (NWS) Alert Card
+
+A simple card to show US National Weather Service alerts for a given zone.
+
+**_Disclaimer:  Do not rely on the output of this card.  Always consult the National Weather Service or other competent weather provider for critical information._**
 
 # NWS Zones
 
