@@ -1,0 +1,6 @@
+{
+  "name": "US NWS Alert Card",
+  "content_in_root": false,
+  "filename": "nws-alert-card.js",
+  "render_readme": true
+}
