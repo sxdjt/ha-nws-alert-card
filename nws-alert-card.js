@@ -4,6 +4,7 @@ class NWSAlertCard extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._config = {}; // Initialize config
     this._interval = null; // To store our polling interval ID
+    this._lastResponse = null; // To store the last API response
 
     // Basic styling for the card
     const style = document.createElement("style");
@@ -109,9 +110,6 @@ class NWSAlertCard extends HTMLElement {
     const url = `https://api.weather.gov/alerts/active/zone/${zone}`;
     const email = this._config.email; // Get email from config
 
-    // Display a loading message while fetching
-    this._renderContent('<div class="message">Loading NWS alerts...</div>');
-
     try {
       const response = await fetch(url, {
         headers: {
@@ -120,15 +118,29 @@ class NWSAlertCard extends HTMLElement {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        // If the response is not OK, we might want to show an error, but only if it's different from the last known state
+        if (this._lastResponse !== 'error') {
+          this._renderContent('<div class="message error-message">** NO DATA ** (API Error)</div>');
+          this._lastResponse = 'error'; // Store the error state
+        }
+        return; // Stop processing
       }
 
       const data = await response.json();
-      this._renderAlerts(data);
+      const responseBody = JSON.stringify(data);
 
+      // Only update if the response is different from the last one
+      if (responseBody !== this._lastResponse) {
+        this._lastResponse = responseBody; // Update the last response
+        this._renderAlerts(data);
+      }
     } catch (error) {
       console.error("Error fetching NWS alerts:", error);
-      this._renderContent('<div class="message error-message">** NO DATA ** (API Error)</div>');
+      // Handle fetch error, maybe show an error message if the state changes
+      if (this._lastResponse !== 'error') {
+        this._renderContent('<div class="message error-message">** NO DATA ** (Fetch Error)</div>');
+        this._lastResponse = 'error'; // Mark state as error
+      }
     }
   }
 
