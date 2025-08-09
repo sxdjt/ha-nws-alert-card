@@ -2,226 +2,205 @@ class NWSAlertCard extends HTMLElement {
   constructor() {
     super();
     this.attachShadow({ mode: 'open' });
-    this._config = {}; // Initialize config
-    this._interval = null; // To store our polling interval ID
-    this._lastResponse = null; // To store the last API response
+    this._config = {};
+    this._interval = null;
+    this._lastResponseHash = null;
 
-    // Basic styling for the card
     const style = document.createElement("style");
     style.textContent = `
-      .card {
+      ha-card {
         padding: 16px;
         display: block;
-        background: var(--card-background-color);
-        border-radius: var(--ha-card-border-radius, 8px);
-        box-shadow: var(--ha-card-box-shadow, 0px 2px 4px 0px rgba(0,0,0,0.16));
-        color: var(--primary-text-color);
       }
       .alert-item {
-        margin-bottom: 10px;
-        border-bottom: 1px solid var(--divider-color);
-        padding-bottom: 10px;
+        margin-bottom: 12px;
+        border-left: 4px solid var(--divider-color);
+        padding-left: 10px;
       }
       .alert-item:last-child {
-        border-bottom: none;
         margin-bottom: 0;
-        padding-bottom: 0;
       }
-      h2 {
-        margin-top: 0;
-        margin-bottom: 16px;
-        font-size: 20px;
-        font-weight: normal;
-        color: var(--primary-text-color);
+      .severity-Extreme { border-color: red; }
+      .severity-Severe { border-color: orange; }
+      .severity-Moderate { border-color: gold; }
+      .severity-Minor { border-color: green; }
+      .alert-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
-      p {
-        margin: 0 0 8px 0;
-        color: var(--primary-text-color);
+      .alert-header h3 {
+        margin: 0;
+        font-size: 16px;
       }
-      b {
-        font-weight: bold;
-      }
-      .message {
-        text-align: center;
-        padding: 10px 0;
+      .times {
+        font-size: 0.9em;
         color: var(--secondary-text-color);
+      }
+      .description {
+        margin-top: 8px;
+        color: var(--primary-text-color);
+      }
+      .toggle {
+        color: var(--primary-color);
+        cursor: pointer;
+        font-size: 0.85em;
+        user-select: none;
       }
       .error-message {
         color: var(--error-color, red);
         font-weight: bold;
+        text-align: center;
+      }
+      a {
+        font-size: 0.85em;
+        text-decoration: underline;
+        color: var(--primary-color);
       }
     `;
     this.shadowRoot.appendChild(style);
 
-    // Create a div to hold the card's content
-    this._content = document.createElement("div");
-    this._content.classList.add("card");
+    this._content = document.createElement("ha-card");
     this.shadowRoot.appendChild(this._content);
   }
 
-  // Called when the card's configuration changes in Lovelace
   setConfig(config) {
     if (!config.nws_zone) {
       throw new Error("You need to define 'nws_zone' in the card configuration.");
     }
-    // Set a default email if not provided, as NWS API requests a User-Agent.
-    // Advise users to use their own email for best practice.
     if (!config.email) {
-      console.warn("NWS Alert Card: 'email' not provided in card configuration. Using a generic default. Please add your email for NWS API requests.");
+      console.warn("NWS Alert Card: 'email' not provided; using default placeholder.");
     }
 
     this._config = {
       title: 'NWS Weather Alert',
-      update_interval: 300, // Default to 5 minutes (300 seconds)
-      email: 'homeassistant_user@example.com', // Generic default email
-      ...config // Merge user config, overriding defaults
+      update_interval: 300,
+      email: 'homeassistant_user@example.com',
+      ...config
     };
-
-    // Re-fetch data and set up interval if config changes
     this._clearAndSetInterval();
   }
 
-  // Called when the card is added to the DOM (when visible in dashboard)
   connectedCallback() {
     this._clearAndSetInterval();
   }
 
-  // Called when the card is removed from the DOM (e.g., changing dashboards)
   disconnectedCallback() {
-    if (this._interval) {
-      clearInterval(this._interval);
-      this._interval = null;
-    }
+    if (this._interval) clearInterval(this._interval);
+    this._interval = null;
+    this._lastResponseHash = null;
   }
 
-  // Utility to clear existing interval and set a new one
   _clearAndSetInterval() {
-    if (this._interval) {
-      clearInterval(this._interval);
-    }
-    // Fetch data immediately when connected or config changes
+    if (this._interval) clearInterval(this._interval);
     this._fetchAlerts();
-    // Set up polling interval
     this._interval = setInterval(() => this._fetchAlerts(), this._config.update_interval * 1000);
   }
 
   async _fetchAlerts() {
     const zone = this._config.nws_zone;
     const url = `https://api.weather.gov/alerts/active/zone/${zone}`;
-    const email = this._config.email; // Get email from config
-
     try {
       const response = await fetch(url, {
-        headers: {
-          'User-Agent': `Home Assistant Custom Card / ${email}` // Use the configurable email
-        }
+        headers: { 'User-Agent': `Home Assistant Custom Card / ${this._config.email}` }
       });
 
       if (!response.ok) {
-        // If the response is not OK, we might want to show an error, but only if it's different from the last known state
-        if (this._lastResponse !== 'error') {
-          this._renderContent('<div class="message error-message">** NO DATA ** (API Error)</div>');
-          this._lastResponse = 'error'; // Store the error state
-        }
-        return; // Stop processing
+        this._renderContent(`<div class="error-message">⚠ Weather.gov API error (${response.status})</div>`);
+        return;
       }
 
       const data = await response.json();
-      const responseBody = JSON.stringify(data);
+      const hash = JSON.stringify(data.features.map(f => f.id));
 
-      // Only update if the response is different from the last one
-      if (responseBody !== this._lastResponse) {
-        this._lastResponse = responseBody; // Update the last response
-        this._renderAlerts(data);
+      if (hash !== this._lastResponseHash) {
+        this._lastResponseHash = hash;
+        this._renderAlerts(data.features);
       }
-    } catch (error) {
-      console.error("Error fetching NWS alerts:", error);
-      // Handle fetch error, maybe show an error message if the state changes
-      if (this._lastResponse !== 'error') {
-        this._renderContent('<div class="message error-message">** NO DATA ** (Fetch Error)</div>');
-        this._lastResponse = 'error'; // Mark state as error
-      }
+    } catch (err) {
+      console.error("NWS fetch error:", err);
+      this._renderContent('<div class="error-message">⚠ Unable to fetch weather alerts</div>');
     }
   }
 
-  // Helper function to format ISO 8601 strings to local time
   _formatTime(isoString) {
-    if (!isoString) {
-      return 'N/A';
-    }
-    try {
-      const date = new Date(isoString);
-      // Format to local time with date, time, and timezone abbreviation
-      return date.toLocaleString(undefined, {
-        year: 'numeric',
-        month: 'numeric',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZoneName: 'short',
-        hour12: true // Use 12-hour format with AM/PM
-      });
-    } catch (e) {
-      console.warn("Could not parse date string:", isoString, e);
-      return 'Invalid Date';
-    }
+    if (!isoString) return 'N/A';
+    const date = new Date(isoString);
+    return date.toLocaleString(undefined, {
+      year: 'numeric', month: 'numeric', day: 'numeric',
+      hour: 'numeric', minute: '2-digit',
+      timeZoneName: 'short', hour12: true
+    });
   }
 
-  _renderAlerts(data) {
-    const alerts = data.features;
+  _renderAlerts(alerts) {
     let html = `<h2>${this._config.title}</h2>`;
 
-    if (alerts && alerts.length > 0) {
-      alerts.forEach(alert => {
-        const properties = alert.properties;
-        html += `<div class="alert-item">`;
-        html += `<p><b>Event:</b> ${properties.event || 'N/A'}</p>`;
-        html += `<p><b>Severity:</b> ${properties.severity || 'N/A'}</p>`;
-        html += `<p><b>Certainty:</b> ${properties.certainty || 'N/A'}</p>`;
-        html += `<p><b>Urgency:</b> ${properties.urgency || 'N/A'}</p>`;
-        html += `<p><b>Onset:</b> ${this._formatTime(properties.onset)}</p>`;
-        html += `<p><b>Expires:</b> ${this._formatTime(properties.expires)}</p>`;
-        if (properties.ends) { // 'ends' is optional and might not always be present
-          html += `<p><b>Ends:</b> ${this._formatTime(properties.ends)}</p>`;
-        }
-        html += `<p><b>Description:</b> ${properties.description || 'N/A'}</p>`;
-        if (properties.NWSheadline) {
-          html += `<p><b>NWS Headline:</b> ${properties.NWSheadline}</p>`;
-        }
-        html += `</div>`;
-      });
+    if (!alerts || alerts.length === 0) {
+      html += '<div>No alerts at this time.</div>';
     } else {
-      html += '<div class="message">No alerts at this time.</div>';
+      alerts.forEach(alert => {
+        const p = alert.properties;
+        const severityClass = `severity-${p.severity || 'Unknown'}`;
+        
+        // Add  marker for Severe and Extreme
+        const dangerMarker = (p.severity === 'Severe' || p.severity === 'Extreme') ? '🟥🟥🟥 ' : '';
+        
+        const desc = p.description || 'No description';
+        const shortened = desc.length > 200 ? desc.slice(0, 200) + '…' : desc;
+
+        html += `
+          <div class="alert-item ${severityClass}">
+            <div class="alert-header">
+              <h3>${dangerMarker}${p.event || 'Unknown Event'}</h3>
+              <span class="times">${this._formatTime(p.onset)} → ${this._formatTime(p.expires)}</span>
+            </div>
+            <div><b>Severity:</b> ${p.severity || 'N/A'} | <b>Urgency:</b> ${p.urgency || 'N/A'}</div>
+            <div class="description" data-full="${encodeURIComponent(desc)}">
+              ${shortened}
+              ${desc.length > 200 ? `<div class="toggle">Show more</div>` : ''}
+            </div>
+            ${p.uri ? `<a href="${p.uri}" target="_blank">Read full alert</a>` : ''}
+          </div>
+        `;
+      });
     }
+
     this._renderContent(html);
+    this._attachToggleHandlers();
   }
 
-  // Helper to update the inner HTML of the content div
+  _attachToggleHandlers() {
+    this._content.querySelectorAll('.toggle').forEach(toggle => {
+      toggle.addEventListener('click', () => {
+        const descDiv = toggle.parentElement;
+        const fullText = decodeURIComponent(descDiv.dataset.full);
+        if (toggle.textContent === 'Show more') {
+          descDiv.firstChild.textContent = fullText;
+          toggle.textContent = 'Show less';
+        } else {
+          descDiv.firstChild.textContent = fullText.slice(0, 200) + '…';
+          toggle.textContent = 'Show more';
+        }
+      });
+    });
+  }
+
   _renderContent(html) {
     this._content.innerHTML = html;
   }
 
-  // Define the card's dimensions (optional, but good practice)
   getCardSize() {
-    // This is an estimate; actual size depends on content.
-    // 1 unit typically is about 50px.
     return 3;
   }
 }
 
-// Register your custom element with a unique tag name
 customElements.define('nws-alert-card', NWSAlertCard);
 
-// Make it discoverable by the Lovelace UI editor
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'nws-alert-card',
   name: 'NWS Alert Card',
-  description: 'Displays active NWS weather alerts for a specified zone.',
-  defaultConfig: {
-    nws_zone: 'COZ097', 
-    title: 'Current Weather Alerts',
-    update_interval: 300, // Default to 5 minutes
-    email: 'homeassistant_user@example.com', // Default email for User-Agent
-  },
+  description: 'Displays active NWS weather alerts with severity colors, 🟥 markers for dangerous alerts, and expandable descriptions.',
 });
+
