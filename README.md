@@ -4,7 +4,7 @@ A simple card to show US National Weather Service alerts for a given zone.
 
 **_Disclaimer:  Do not rely on the output of this card.  Always consult the National Weather Service or other competent weather provider for critical information._**
 
-# NWS Zones
+# NWS Zones 
 
 To find your NWS zone, go to https://www.weather.gov/pimar/PubZone and view state you wish to search.  Zones are 3 digit numbers and can be used to configure the card.  You can also use https://alerts.weather.gov/ to find this information.
 
