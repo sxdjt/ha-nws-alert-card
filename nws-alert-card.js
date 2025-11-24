@@ -286,6 +286,15 @@ class NWSAlertCard extends HTMLElement {
     return div.innerHTML;
   }
 
+  _normalizeDescription(text) {
+    // Trim leading/trailing whitespace from each line to remove indentation
+    return text
+      .split('\n')
+      .map(line => line.trim())
+      .join('\n')
+      .trim();
+  }
+
   _renderAlerts(alerts) {
     let html = `<h2 class="card-title">${this._escapeHtml(this._config.title)}</h2>`;
 
@@ -309,6 +318,7 @@ class NWSAlertCard extends HTMLElement {
         }
         
         const desc = p.description || 'No description available';
+        const normalizedDesc = this._normalizeDescription(desc);
 
         html += `
           <div class="alert-item ${severityClass}" role="article" aria-labelledby="alert-${alertId}">
@@ -327,7 +337,7 @@ class NWSAlertCard extends HTMLElement {
             </div>
             ${isExpanded ? `
               <div class="description">
-                ${this._escapeHtml(desc)}
+                ${this._escapeHtml(normalizedDesc)}
               </div>
               ${p.uri ? `<a href="${this._escapeHtml(p.uri)}" class="alert-link" target="_blank" rel="noopener noreferrer">Read full alert ↗</a>` : ''}
             ` : ''}
