@@ -4,9 +4,25 @@ class NWSAlertCard extends HTMLElement {
     this.attachShadow({ mode: 'open' });
     this._config = {};
     this._interval = null;
-    this._lastResponseHash = null;
+    this._lastAlertIds = new Set();
+    this._expandedAlerts = new Set();
+    this._retryCount = 0;
+    
+    // Constants
+    this.MAX_RETRIES = 3;
+    this.BASE_RETRY_DELAY = 5000;
+    this.DESCRIPTION_THRESHOLD = 200;
+    
+    this._initializeStyles();
+    this._content = document.createElement('ha-card');
+    this.shadowRoot.appendChild(this._content);
+    
+    // Event delegation for toggles
+    this._content.addEventListener('click', this._handleClick.bind(this));
+  }
 
-    const style = document.createElement("style");
+  _initializeStyles() {
+    const style = document.createElement('style');
     style.textContent = `
       ha-card {
         padding: 16px;
@@ -16,69 +32,143 @@ class NWSAlertCard extends HTMLElement {
         margin-bottom: 12px;
         border-left: 4px solid var(--divider-color);
         padding-left: 10px;
+        transition: border-color 0.2s ease;
       }
       .alert-item:last-child {
         margin-bottom: 0;
       }
-      .severity-Extreme { border-color: red; }
-      .severity-Severe { border-color: orange; }
-      .severity-Moderate { border-color: gold; }
-      .severity-Minor { border-color: green; }
+      .alert-item:focus-within {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      .severity-Extreme { border-color: #dc3545; }
+      .severity-Severe { border-color: #fd7e14; }
+      .severity-Moderate { border-color: #ffc107; }
+      .severity-Minor { border-color: #28a745; }
+      .severity-Unknown { border-color: var(--divider-color); }
       .alert-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
       }
       .alert-header h3 {
         margin: 0;
         font-size: 16px;
+        line-height: 1.4;
       }
-      .times {
+      .alert-meta {
+        display: flex;
+        gap: 12px;
+        margin: 4px 0;
         font-size: 0.9em;
         color: var(--secondary-text-color);
+      }
+      .times {
+        font-size: 0.85em;
+        color: var(--secondary-text-color);
+        white-space: nowrap;
       }
       .description {
         margin-top: 8px;
         color: var(--primary-text-color);
+        line-height: 1.5;
+        white-space: pre-wrap;
       }
       .toggle {
         color: var(--primary-color);
         cursor: pointer;
         font-size: 0.85em;
         user-select: none;
+        display: inline-block;
+        margin-top: 4px;
+        padding: 4px 0;
+        text-decoration: underline;
+      }
+      .toggle:hover {
+        opacity: 0.8;
+      }
+      .toggle:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+      }
+      .error-message, .warning-message {
+        padding: 12px;
+        border-radius: 4px;
+        text-align: center;
+        margin: 8px 0;
       }
       .error-message {
-        color: var(--error-color, red);
-        font-weight: bold;
-        text-align: center;
+        color: var(--error-color, #dc3545);
+        background: var(--error-color, #dc3545)22;
+        font-weight: 500;
       }
-      a {
+      .warning-message {
+        color: var(--warning-color, #ffc107);
+        background: var(--warning-color, #ffc107)22;
+      }
+      .no-alerts {
+        text-align: center;
+        color: var(--secondary-text-color);
+        padding: 12px 0;
+      }
+      .alert-link {
         font-size: 0.85em;
         text-decoration: underline;
         color: var(--primary-color);
+        display: inline-block;
+        margin-top: 4px;
+      }
+      .alert-link:hover {
+        opacity: 0.8;
+      }
+      .danger-marker {
+        font-size: 0.85em;
+        margin-right: 4px;
+      }
+      .card-title {
+        margin: 0 0 12px 0;
+        font-size: 20px;
       }
     `;
     this.shadowRoot.appendChild(style);
-
-    this._content = document.createElement("ha-card");
-    this.shadowRoot.appendChild(this._content);
   }
 
   setConfig(config) {
     if (!config.nws_zone) {
-      throw new Error("You need to define 'nws_zone' in the card configuration.");
+      throw new Error("'nws_zone' is required in card configuration");
     }
-    if (!config.email) {
-      console.warn("NWS Alert Card: 'email' not provided; using default placeholder.");
+    
+    // Validate zone format (basic check)
+    if (!/^[A-Z]{2}[CZ]\d{3}$/.test(config.nws_zone)) {
+      console.warn(`NWS Alert Card: '${config.nws_zone}' may not be a valid zone format (expected: SSZNNN or SSCNNN)`);
     }
+    
+    const sanitizedEmail = this._sanitizeEmail(config.email || 'homeassistant@example.com');
 
     this._config = {
       title: 'NWS Weather Alert',
       update_interval: 300,
-      email: 'homeassistant_user@example.com',
+      email: sanitizedEmail,
+      show_severity_markers: true,
       ...config
     };
+    
     this._clearAndSetInterval();
+  }
+
+  _sanitizeEmail(email) {
+    // Basic email validation and sanitization
+    const cleaned = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    
+    if (!emailRegex.test(cleaned)) {
+      console.warn('NWS Alert Card: Invalid email format, using default');
+      return 'homeassistant@example.com';
+    }
+    
+    return cleaned;
   }
 
   connectedCallback() {
@@ -88,102 +178,179 @@ class NWSAlertCard extends HTMLElement {
   disconnectedCallback() {
     if (this._interval) clearInterval(this._interval);
     this._interval = null;
-    this._lastResponseHash = null;
+    this._lastAlertIds.clear();
+    this._expandedAlerts.clear();
   }
 
   _clearAndSetInterval() {
     if (this._interval) clearInterval(this._interval);
     this._fetchAlerts();
-    this._interval = setInterval(() => this._fetchAlerts(), this._config.update_interval * 1000);
+    
+    const intervalMs = this._config.update_interval * 1000;
+    this._interval = setInterval(() => this._fetchAlerts(), intervalMs);
   }
 
   async _fetchAlerts() {
     const zone = this._config.nws_zone;
     const url = `https://api.weather.gov/alerts/active/zone/${zone}`;
+    
     try {
       const response = await fetch(url, {
-        headers: { 'User-Agent': `Home Assistant Custom Card / ${this._config.email}` }
+        headers: { 
+          'User-Agent': `Home Assistant Custom Card / ${this._config.email}`,
+          'Accept': 'application/geo+json'
+        },
+        signal: AbortSignal.timeout(10000) // 10s timeout
       });
 
       if (!response.ok) {
-        this._renderContent(`<div class="error-message">⚠ Weather.gov API error (${response.status})</div>`);
-        return;
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
       const data = await response.json();
-      const hash = JSON.stringify(data.features.map(f => f.id));
-
-      if (hash !== this._lastResponseHash) {
-        this._lastResponseHash = hash;
+      
+      // Check if data changed using Set comparison
+      const currentIds = new Set(data.features.map(f => f.id));
+      if (!this._setsEqual(currentIds, this._lastAlertIds)) {
+        this._lastAlertIds = currentIds;
         this._renderAlerts(data.features);
       }
+      
+      // Reset retry count on success
+      this._retryCount = 0;
+      
     } catch (err) {
-      console.error("NWS fetch error:", err);
-      this._renderContent('<div class="error-message">⚠ Unable to fetch weather alerts</div>');
+      console.error('NWS fetch error:', err);
+      
+      if (this._retryCount < this.MAX_RETRIES) {
+        this._retryCount++;
+        const delay = this.BASE_RETRY_DELAY * Math.pow(2, this._retryCount - 1);
+        console.log(`Retrying in ${delay/1000}s (attempt ${this._retryCount}/${this.MAX_RETRIES})`);
+        
+        setTimeout(() => this._fetchAlerts(), delay);
+      } else {
+        this._renderContent(
+          `<h2 class="card-title">${this._config.title}</h2>` +
+          '<div class="error-message">⚠ Unable to fetch weather alerts. Check zone configuration.</div>'
+        );
+      }
     }
+  }
+
+  _setsEqual(set1, set2) {
+    if (set1.size !== set2.size) return false;
+    for (const item of set1) {
+      if (!set2.has(item)) return false;
+    }
+    return true;
   }
 
   _formatTime(isoString) {
     if (!isoString) return 'N/A';
-    const date = new Date(isoString);
-    return date.toLocaleString(undefined, {
-      year: 'numeric', month: 'numeric', day: 'numeric',
-      hour: 'numeric', minute: '2-digit',
-      timeZoneName: 'short', hour12: true
-    });
+    try {
+      const date = new Date(isoString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
+      
+      return date.toLocaleString(undefined, {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZoneName: 'short',
+        hour12: true
+      });
+    } catch (err) {
+      console.error('Date formatting error:', err);
+      return 'N/A';
+    }
+  }
+
+  _escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
   }
 
   _renderAlerts(alerts) {
-    let html = `<h2>${this._config.title}</h2>`;
+    let html = `<h2 class="card-title">${this._escapeHtml(this._config.title)}</h2>`;
 
     if (!alerts || alerts.length === 0) {
-      html += '<div>No alerts at this time.</div>';
+      html += '<div class="no-alerts">✓ No active alerts at this time</div>';
     } else {
       alerts.forEach(alert => {
         const p = alert.properties;
+        const alertId = alert.id;
         const severityClass = `severity-${p.severity || 'Unknown'}`;
+        const isExpanded = this._expandedAlerts.has(alertId);
         
-        // Add  marker for Severe and Extreme
-        const dangerMarker = (p.severity === 'Severe' || p.severity === 'Extreme') ? '🟥🟥🟥 ' : '';
+        // Danger marker for severe alerts
+        let dangerMarker = '';
+        if (this._config.show_severity_markers !== false) {
+          if (p.severity === 'Extreme') {
+            dangerMarker = '<span class="danger-marker" aria-label="Extreme severity">🔴🔴🔴</span>';
+          } else if (p.severity === 'Severe') {
+            dangerMarker = '<span class="danger-marker" aria-label="Severe severity">🟠🟠</span>';
+          }
+        }
         
-        const desc = p.description || 'No description';
-        const shortened = desc.length > 200 ? desc.slice(0, 200) + '…' : desc;
+        const desc = p.description || 'No description available';
+        const needsTruncation = desc.length > this.DESCRIPTION_THRESHOLD;
+        const displayText = (needsTruncation && !isExpanded) 
+          ? this._escapeHtml(desc.slice(0, this.DESCRIPTION_THRESHOLD) + '…')
+          : this._escapeHtml(desc);
 
         html += `
-          <div class="alert-item ${severityClass}">
+          <div class="alert-item ${severityClass}" role="article" aria-labelledby="alert-${alertId}">
             <div class="alert-header">
-              <h3>${dangerMarker}${p.event || 'Unknown Event'}</h3>
-              <span class="times">${this._formatTime(p.onset)} → ${this._formatTime(p.expires)}</span>
+              <h3 id="alert-${alertId}">
+                ${dangerMarker}${this._escapeHtml(p.event || 'Unknown Event')}
+              </h3>
+              <span class="times" aria-label="Alert timeframe">
+                ${this._formatTime(p.onset)} → ${this._formatTime(p.expires)}
+              </span>
             </div>
-            <div><b>Severity:</b> ${p.severity || 'N/A'} | <b>Urgency:</b> ${p.urgency || 'N/A'}</div>
-            <div class="description" data-full="${encodeURIComponent(desc)}">
-              ${shortened}
-              ${desc.length > 200 ? `<div class="toggle">Show more</div>` : ''}
+            <div class="alert-meta">
+              <span><strong>Severity:</strong> ${this._escapeHtml(p.severity || 'N/A')}</span>
+              <span><strong>Urgency:</strong> ${this._escapeHtml(p.urgency || 'N/A')}</span>
+              ${p.certainty ? `<span><strong>Certainty:</strong> ${this._escapeHtml(p.certainty)}</span>` : ''}
             </div>
-            ${p.uri ? `<a href="${p.uri}" target="_blank">Read full alert</a>` : ''}
+            <div class="description">
+              ${displayText}
+              ${needsTruncation ? `
+                <div class="toggle" 
+                     data-alert-id="${alertId}" 
+                     role="button" 
+                     tabindex="0"
+                     aria-expanded="${isExpanded}"
+                     aria-label="${isExpanded ? 'Show less' : 'Show more'}">
+                  ${isExpanded ? 'Show less ▲' : 'Show more ▼'}
+                </div>
+              ` : ''}
+            </div>
+            ${p.uri ? `<a href="${this._escapeHtml(p.uri)}" class="alert-link" target="_blank" rel="noopener noreferrer">Read full alert ↗</a>` : ''}
           </div>
         `;
       });
     }
 
     this._renderContent(html);
-    this._attachToggleHandlers();
   }
 
-  _attachToggleHandlers() {
-    this._content.querySelectorAll('.toggle').forEach(toggle => {
-      toggle.addEventListener('click', () => {
-        const descDiv = toggle.parentElement;
-        const fullText = decodeURIComponent(descDiv.dataset.full);
-        if (toggle.textContent === 'Show more') {
-          descDiv.firstChild.textContent = fullText;
-          toggle.textContent = 'Show less';
-        } else {
-          descDiv.firstChild.textContent = fullText.slice(0, 200) + '…';
-          toggle.textContent = 'Show more';
-        }
-      });
-    });
+  _handleClick(event) {
+    const toggle = event.target.closest('.toggle');
+    if (!toggle) return;
+
+    const alertId = toggle.dataset.alertId;
+    
+    if (this._expandedAlerts.has(alertId)) {
+      this._expandedAlerts.delete(alertId);
+    } else {
+      this._expandedAlerts.add(alertId);
+    }
+    
+    // Re-fetch to get latest data and re-render with preserved state
+    this._fetchAlerts();
   }
 
   _renderContent(html) {
@@ -191,7 +358,24 @@ class NWSAlertCard extends HTMLElement {
   }
 
   getCardSize() {
-    return 3;
+    // Dynamic sizing based on alert count
+    const alertCount = this._lastAlertIds.size;
+    return alertCount === 0 ? 2 : Math.min(2 + alertCount, 8);
+  }
+
+  static getConfigElement() {
+    // Could implement visual config editor here
+    return document.createElement('div');
+  }
+
+  static getStubConfig() {
+    return {
+      nws_zone: 'WAZ558',
+      email: 'homeassistant@example.com',
+      title: 'NWS Weather Alert',
+      update_interval: 300,
+      show_severity_markers: true
+    };
   }
 }
 
@@ -201,6 +385,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: 'nws-alert-card',
   name: 'NWS Alert Card',
-  description: 'Displays active NWS weather alerts with severity colors, 🟥 markers for dangerous alerts, and expandable descriptions.',
+  description: 'Displays active NWS weather alerts with severity colors and expandable descriptions',
+  preview: true,
+  documentationURL: 'https://github.com/sxdjt/ha-nws-alert-card'
 });
-
