@@ -377,7 +377,7 @@ class NWSAlertCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      nws_zone: 'WAZ558',
+      nws_zone: 'MTZ011',
       email: 'homeassistant@example.com',
       title: 'NWS Weather Alert',
       update_interval: 300,
