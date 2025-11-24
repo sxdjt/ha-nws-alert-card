@@ -8,6 +8,7 @@ class NWSAlertCard extends HTMLElement {
     this._expandedAlerts = new Set();
     this._alertsCache = new Map();
     this._retryCount = 0;
+    this._zoneName = null;
     
     // Constants
     this.MAX_RETRIES = 3;
@@ -132,6 +133,11 @@ class NWSAlertCard extends HTMLElement {
         margin: 0 0 12px 0;
         font-size: 20px;
       }
+      .zone-subtitle {
+        font-size: 0.85em;
+        color: var(--secondary-text-color);
+        margin: -8px 0 12px 0;
+      }
     `;
     this.shadowRoot.appendChild(style);
   }
@@ -175,6 +181,7 @@ class NWSAlertCard extends HTMLElement {
   connectedCallback() {
     // Force initial render
     this._renderContent(`<h2 class="card-title">${this._config.title || 'NWS Weather Alert'}</h2><div class="no-alerts">Loading...</div>`);
+    this._fetchZoneName();
     this._clearAndSetInterval();
   }
 
@@ -184,6 +191,7 @@ class NWSAlertCard extends HTMLElement {
     this._lastAlertIds.clear();
     this._expandedAlerts.clear();
     this._alertsCache.clear();
+    this._zoneName = null;
   }
 
   _clearAndSetInterval() {
@@ -251,6 +259,44 @@ class NWSAlertCard extends HTMLElement {
     }
   }
 
+  async _fetchZoneName() {
+    if (this._zoneName) return; // Already fetched
+
+    const zone = this._config.nws_zone;
+    if (!zone) return;
+
+    const url = `https://api.weather.gov/zones/forecast/${zone}`;
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': `Home Assistant Custom Card / ${this._config.email}`,
+          'Accept': 'application/geo+json'
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+
+      if (!response.ok) {
+        console.warn(`Unable to fetch zone name: HTTP ${response.status}`);
+        return;
+      }
+
+      const data = await response.json();
+
+      if (data.properties && data.properties.name) {
+        this._zoneName = data.properties.name;
+        // Re-render to show zone name
+        const currentAlerts = Array.from(this._lastAlertIds).map(id => this._alertsCache.get(id)).filter(Boolean);
+        if (currentAlerts.length > 0 || this._lastAlertIds.size === 0) {
+          this._renderAlerts(currentAlerts);
+        }
+      }
+    } catch (err) {
+      console.warn('Zone name fetch error:', err);
+      // Not critical, just skip showing zone name
+    }
+  }
+
   _setsEqual(set1, set2) {
     if (set1.size !== set2.size) return false;
     for (const item of set1) {
@@ -297,6 +343,10 @@ class NWSAlertCard extends HTMLElement {
 
   _renderAlerts(alerts) {
     let html = `<h2 class="card-title">${this._escapeHtml(this._config.title)}</h2>`;
+
+    if (this._zoneName) {
+      html += `<div class="zone-subtitle">${this._escapeHtml(this._zoneName)}</div>`;
+    }
 
     if (!alerts || alerts.length === 0) {
       html += '<div class="no-alerts">✓ No active alerts at this time</div>';
