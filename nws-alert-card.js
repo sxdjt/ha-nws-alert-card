@@ -6,6 +6,7 @@ class NWSAlertCard extends HTMLElement {
     this._interval = null;
     this._lastAlertIds = new Set();
     this._expandedAlerts = new Set();
+    this._alertsCache = new Map();
     this._retryCount = 0;
     
     // Constants
@@ -182,6 +183,7 @@ class NWSAlertCard extends HTMLElement {
     this._interval = null;
     this._lastAlertIds.clear();
     this._expandedAlerts.clear();
+    this._alertsCache.clear();
   }
 
   _clearAndSetInterval() {
@@ -213,6 +215,11 @@ class NWSAlertCard extends HTMLElement {
       
       // Ensure features array exists
       const features = data.features || [];
+      
+      // Cache the alerts
+      features.forEach(alert => {
+        this._alertsCache.set(alert.id, alert);
+      });
       
       // Always render on first fetch or when data changes
       const currentIds = new Set(features.map(f => f.id));
@@ -352,8 +359,8 @@ class NWSAlertCard extends HTMLElement {
       this._expandedAlerts.add(alertId);
     }
     
-    // Re-fetch to get latest data and re-render with preserved state
-    this._fetchAlerts();
+    // Re-render immediately with current data
+    this._renderAlerts(Array.from(this._lastAlertIds).map(id => this._alertsCache.get(id)).filter(Boolean));
   }
 
   _renderContent(html) {
