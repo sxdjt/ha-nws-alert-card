@@ -4,6 +4,5 @@
   "filename": "nws-alert-card.js",
   "render_readme": true,
   "country": "US",
-  "homeassistant": "2021.1.0",
-  "iot_class": "Cloud Polling"
+  "homeassistant": "2021.1.0"
 }
