@@ -2,13 +2,13 @@
 
 A custom Lovelace card that displays active US National Weather Service alerts with real-time updates, severity-based color coding, and expandable descriptions.
 
-<img width="514" height="199" alt="Screenshot 2025-11-23 at 23 56 22" src="https://github.com/user-attachments/assets/93c8e9de-8b2d-4859-85e4-82712a824550" />
+<img width="506" height="218" alt="Screenshot 2025-11-24 at 13 37 37" src="https://github.com/user-attachments/assets/2c96e6ab-767f-4649-9faf-8efdea62e1be" />
 
-<img width="517" height="557" alt="Screenshot 2025-11-23 at 23 55 48" src="https://github.com/user-attachments/assets/a63420bb-e1c3-47a8-8205-b6830f2d5c1a" />
+<img width="514" height="476" alt="Screenshot 2025-11-24 at 13 37 49" src="https://github.com/user-attachments/assets/3f3b8f4a-8fbe-46b2-a12c-5f4273e1d031" />
 
-## Disclaimer
+## Disclaimer‼️
 
-**Important:** ‼️ Do not rely on this card for critical weather information. Always consult the National Weather Service or other competent weather providers for important safety decisions. ‼️
+**Important: Do not rely on this card for critical weather information. Always consult the National Weather Service or other competent weather providers for important safety decisions.**
 
 ## Features
 
