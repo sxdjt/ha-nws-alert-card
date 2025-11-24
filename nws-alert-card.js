@@ -10,8 +10,8 @@ class NWSAlertCard extends HTMLElement {
     
     // Constants
     this.MAX_RETRIES = 3;
-    this.BASE_RETRY_DELAY = 5000;
-    this.DESCRIPTION_THRESHOLD = 200;
+    this.BASE_RETRY_DELAY = 8000;
+    this.DESCRIPTION_THRESHOLD = 500;
     
     this._initializeStyles();
     this._content = document.createElement('ha-card');
