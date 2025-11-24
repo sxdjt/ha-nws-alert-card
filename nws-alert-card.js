@@ -172,6 +172,8 @@ class NWSAlertCard extends HTMLElement {
   }
 
   connectedCallback() {
+    // Force initial render
+    this._renderContent(`<h2 class="card-title">${this._config.title || 'NWS Weather Alert'}</h2><div class="no-alerts">Loading...</div>`);
     this._clearAndSetInterval();
   }
 
@@ -209,11 +211,16 @@ class NWSAlertCard extends HTMLElement {
 
       const data = await response.json();
       
-      // Check if data changed using Set comparison
-      const currentIds = new Set(data.features.map(f => f.id));
-      if (!this._setsEqual(currentIds, this._lastAlertIds)) {
+      // Ensure features array exists
+      const features = data.features || [];
+      
+      // Always render on first fetch or when data changes
+      const currentIds = new Set(features.map(f => f.id));
+      const isFirstFetch = this._lastAlertIds.size === 0 && this._content.innerHTML.includes('Loading');
+      
+      if (isFirstFetch || !this._setsEqual(currentIds, this._lastAlertIds)) {
         this._lastAlertIds = currentIds;
-        this._renderAlerts(data.features);
+        this._renderAlerts(features);
       }
       
       // Reset retry count on success
