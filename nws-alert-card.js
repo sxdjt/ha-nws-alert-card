@@ -10,8 +10,8 @@ class NWSAlertCard extends HTMLElement {
     
     // Constants
     this.MAX_RETRIES = 3;
-    this.BASE_RETRY_DELAY = 8000;
-    this.DESCRIPTION_THRESHOLD = 500;
+    this.BASE_RETRY_DELAY = 5000;
+    this.DESCRIPTION_THRESHOLD = 200;
     
     this._initializeStyles();
     this._content = document.createElement('ha-card');
@@ -302,10 +302,6 @@ class NWSAlertCard extends HTMLElement {
         }
         
         const desc = p.description || 'No description available';
-        const needsTruncation = desc.length > this.DESCRIPTION_THRESHOLD;
-        const displayText = (needsTruncation && !isExpanded) 
-          ? this._escapeHtml(desc.slice(0, this.DESCRIPTION_THRESHOLD) + '…')
-          : this._escapeHtml(desc);
 
         html += `
           <div class="alert-item ${severityClass}" role="article" aria-labelledby="alert-${alertId}">
@@ -322,20 +318,20 @@ class NWSAlertCard extends HTMLElement {
               <span><strong>Urgency:</strong> ${this._escapeHtml(p.urgency || 'N/A')}</span>
               ${p.certainty ? `<span><strong>Certainty:</strong> ${this._escapeHtml(p.certainty)}</span>` : ''}
             </div>
-            <div class="description">
-              ${displayText}
-              ${needsTruncation ? `
-                <div class="toggle" 
-                     data-alert-id="${alertId}" 
-                     role="button" 
-                     tabindex="0"
-                     aria-expanded="${isExpanded}"
-                     aria-label="${isExpanded ? 'Show less' : 'Show more'}">
-                  ${isExpanded ? 'Show less ▲' : 'Show more ▼'}
-                </div>
-              ` : ''}
+            ${isExpanded ? `
+              <div class="description">
+                ${this._escapeHtml(desc)}
+              </div>
+              ${p.uri ? `<a href="${this._escapeHtml(p.uri)}" class="alert-link" target="_blank" rel="noopener noreferrer">Read full alert ↗</a>` : ''}
+            ` : ''}
+            <div class="toggle" 
+                 data-alert-id="${alertId}" 
+                 role="button" 
+                 tabindex="0"
+                 aria-expanded="${isExpanded}"
+                 aria-label="${isExpanded ? 'Show less' : 'Show more'}">
+              ${isExpanded ? 'Show less ▲' : 'Show more ▼'}
             </div>
-            ${p.uri ? `<a href="${this._escapeHtml(p.uri)}" class="alert-link" target="_blank" rel="noopener noreferrer">Read full alert ↗</a>` : ''}
           </div>
         `;
       });
@@ -377,7 +373,7 @@ class NWSAlertCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      nws_zone: 'MTZ011',
+      nws_zone: 'WAZ558',
       email: 'homeassistant@example.com',
       title: 'NWS Weather Alert',
       update_interval: 300,
