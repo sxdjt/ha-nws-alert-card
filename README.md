@@ -1,5 +1,7 @@
 # NWS Alert Card for Home Assistant
 
+[![AI Assisted](https://img.shields.io/badge/AI-Claude%20Code-AAAAAA.svg)](https://claude.ai/code)
+
 A custom Lovelace card that displays active US National Weather Service alerts with real-time updates, severity-based color coding, and expandable descriptions.
 
 <img width="506" height="218" alt="Screenshot 2025-11-24 at 13 37 37" src="https://github.com/user-attachments/assets/2c96e6ab-767f-4649-9faf-8efdea62e1be" />
