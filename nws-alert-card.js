@@ -76,7 +76,7 @@ class NWSAlertCard extends HTMLElement {
         margin-top: 8px;
         color: var(--primary-text-color);
         line-height: 1.5;
-        white-space: pre-wrap;
+        white-space: pre-line;
       }
       .toggle {
         color: var(--primary-color);
@@ -333,12 +333,30 @@ class NWSAlertCard extends HTMLElement {
   }
 
   _normalizeDescription(text) {
-    // Trim leading/trailing whitespace from each line to remove indentation
+    // Convert NWS hard line breaks to natural flowing text
+    // Split on double line breaks (paragraph separators), then within each
+    // paragraph replace single line breaks with spaces for natural wrapping
     return text
-      .split('\n')
-      .map(line => line.trim())
-      .join('\n')
-      .trim();
+      .trim()
+      // Normalize line endings to \n
+      .replace(/\r\n/g, '\n')
+      .replace(/\r/g, '\n')
+      // Split on double (or more) line breaks to identify paragraphs
+      .split(/\n\s*\n/)
+      // Process each paragraph
+      .map(paragraph => {
+        // Replace single line breaks with spaces
+        return paragraph
+          .split('\n')
+          .map(line => line.trim())
+          .filter(line => line.length > 0)
+          .join(' ')
+          .trim();
+      })
+      // Filter out any empty paragraphs
+      .filter(paragraph => paragraph.length > 0)
+      // Rejoin with double line breaks for paragraph separation
+      .join('\n\n');
   }
 
   _renderAlerts(alerts) {
