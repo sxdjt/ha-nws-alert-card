@@ -7,11 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] - 2025-12-22
+
+### Fixed
+- Alert description text wrapping for natural flow - NWS API returns descriptions with hard line breaks every 67-69 characters; updated text normalization to convert single line breaks to spaces while preserving paragraph separators (double line breaks), allowing text to wrap naturally at card width
+
+### Changed
+- Updated CSS white-space property from pre-wrap to pre-line to support natural text wrapping
+
+## [2.0.0] - 2024-11-24
+
 ### Added
 - Initial HACS support with `hacs.json`, `info.md`, and validation workflow
 - RELEASE.md documentation for the release process
-
-## [2.0.0] - 2024-11-24
 
 ### Added
 - Zone name display under card title for better context
@@ -68,6 +76,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Links
 
-[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.0.1...HEAD
+[2.0.1]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/sxdjt/ha-nws-alert-card/releases/tag/v2.0.0
 [1.0.0]: https://github.com/sxdjt/ha-nws-alert-card/releases/tag/v1.0.0
