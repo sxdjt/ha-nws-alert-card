@@ -17,37 +17,13 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 - Real-time NWS weather alerts for your specified zone
 - Severity-based color coding (Extreme, Severe, Moderate, Minor, Unknown)
 - Expandable alert descriptions with "Show more/less" toggle
-- Persistent toggle state across updates
-- Automatic polling with configurable interval
-- Exponential backoff retry logic for failed requests
-- Security: Email sanitization and XSS protection
-- Accessibility: ARIA labels and keyboard navigation
-- Memory-efficient event delegation
-- Set-based alert comparison for optimal performance
-- Proper handling of "no alerts" state
 
 ## Installation
 
-### HACS (Recommended)
+### HACS
 
-1. Open HACS in Home Assistant
-2. Click the 3 dots in the upper right corner
-3. Select "Custom repositories"
-4. Add this repository URL: `https://github.com/sxdjt/ha-nws-alert-card`
-5. Select category: "Lovelace"
-6. Click "Install"
-7. Restart Home Assistant
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=sxdjt&repository=ha-nws-alert-card)
 
-### Manual Installation
-
-1. Download `nws-alert-card.js` from this repository
-2. Copy it to `/config/www/nws-alert-card.js` on your Home Assistant server
-3. Add the resource in your Lovelace configuration:
-   - Go to Settings → Dashboards
-   - Click the 3-dot menu → Resources
-   - Add resource:
-     - URL: `/local/nws-alert-card.js`
-     - Resource type: JavaScript Module
 
 ## Finding Your NWS Zone
 
@@ -108,59 +84,7 @@ Alerts are color-coded by severity on the left border:
 - **Minor** (Green): Minimal threat to life/property
 - **Unknown** (Gray): Severity not specified
 
-## Recent Improvements (v2.0)
 
-### Security Enhancements
-- Email input sanitization prevents header injection
-- XSS protection via HTML escaping for all user-facing text
-- `rel="noopener noreferrer"` on external links
-
-### Performance Optimizations
-- Event delegation eliminates memory leaks from repeated renders
-- Set-based alert comparison instead of JSON serialization
-- Persistent toggle state across updates
-- Efficient re-rendering only when alerts change
-
-### Reliability Features
-- Exponential backoff retry logic (max 3 attempts)
-- 10-second fetch timeout via AbortSignal
-- Proper error boundaries and validation
-- Zone format validation
-- Better handling of empty alert states
-
-### User Experience
-- Accessible ARIA labels and keyboard navigation
-- Dynamic card sizing based on alert count
-- Improved date formatting with shorter month names
-- Visual improvements (consistent spacing, hover states)
-- Loading state on initial connection
-- Proper "No active alerts" message display
-
-### Code Quality
-- Constants for magic numbers
-- Proper method organization and separation of concerns
-- Comprehensive error messages
-- Better documentation
-
-## Troubleshooting
-
-### "No active alerts" not showing
-- The card now forces an initial render with "Loading..." state
-- After the first successful fetch, it displays "No active alerts" when appropriate
-- Check browser console (F12) for any errors
-
-### Alerts not updating
-- Verify your `update_interval` setting
-- Check that `nws_zone` is correctly formatted (e.g., `WAZ558`)
-- Review Home Assistant logs for API errors
-- Ensure your Home Assistant has internet access
-
-### Zone validation warning
-- If you see a zone format warning, verify your zone follows the pattern: `SSZNNN` or `SSCNNN`
-- Example valid zones: `AKZ844`, `NVZ020`, `WAC033`
-
-### Toggle state resets
-- This issue has been fixed in v2.0 - toggle states now persist across updates
 
 ## API Information
 
