@@ -30,23 +30,27 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 To configure the card, you need your NWS zone ID. There are two ways to find it:
 
 ### Method 1: NWS Public Zone Page
+
 1. Visit [NWS Public Zones](https://www.weather.gov/pimar/PubZone)
 2. Select your state
 3. Find your county/area
 4. Note the zone code (format: `SSZNNN` or `SSCNNN`)
 
 ### Method 2: Using Coordinates
+
 1. Get your lat/long coordinates
 2. Visit: `https://api.weather.gov/points/LAT,LONG` (replace LAT,LONG with your coordinates)
 3. Find the `forecastZone` field in the JSON response
 4. The zone ID is the last part of the URL (e.g., `COZ097`)
 
 **Zone Format:**
+
 - `SS` = 2-letter state abbreviation (e.g., `AK`, `NY`)
 - `Z` or `C` = Zone or County
 - `NNN` = 3-digit number (e.g., `001`, `329`)
 
 **Examples:**
+
 - Fairbanks, Alaska: `AKZ844`
 - Las Vegas, Nevada: `NVZ020`
 - Denver, Colorado: `COZ097`
@@ -89,6 +93,7 @@ Alerts are color-coded by severity on the left border:
 ## API Information
 
 This card uses the National Weather Service API:
+
 - Endpoint: `https://api.weather.gov/alerts/active/zone/{zone}`
 - Format: GeoJSON
 - Rate limiting: Implemented with exponential backoff

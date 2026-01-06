@@ -5,6 +5,7 @@ This document outlines the process for creating releases of the NWS Alert Card f
 ## Versioning Strategy
 
 This project follows [Semantic Versioning](https://semver.org/) (SemVer):
+
 - **MAJOR** (X.0.0): Breaking changes or major architectural changes
 - **MINOR** (x.Y.0): New features, backward-compatible improvements
 - **PATCH** (x.y.Z): Bug fixes, minor improvements
@@ -25,6 +26,7 @@ Before creating a release, ensure:
 ### Step 1: Update Version References
 
 If you maintain version numbers in your code or documentation:
+
 1. Update any version references in comments or documentation
 2. Commit these changes
 
