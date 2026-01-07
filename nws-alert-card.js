@@ -1,4 +1,4 @@
-/* Last modified: 06-Jan-2026 20:32 */
+/* Last modified: 06-Jan-2026 22:21 */
 class NWSAlertCard extends HTMLElement {
   constructor() {
     super();
@@ -7,6 +7,7 @@ class NWSAlertCard extends HTMLElement {
     this._interval = null;
     this._lastAlertIds = new Set();
     this._expandedAlerts = new Set();
+    this._collapsedAlerts = new Set();
     this._alertsCache = new Map();
     this._retryCount = 0;
     this._zoneName = null;
@@ -198,6 +199,7 @@ class NWSAlertCard extends HTMLElement {
       update_interval: 300,
       email: sanitizedEmail,
       show_severity_markers: true,
+      show_expanded: false,
       ...config
     };
 
@@ -429,6 +431,7 @@ class NWSAlertCard extends HTMLElement {
     this._zoneResolveTimeout = null;
     this._lastAlertIds.clear();
     this._expandedAlerts.clear();
+    this._collapsedAlerts.clear();
     this._alertsCache.clear();
     this._zoneName = null;
     this._currentZone = null;
@@ -624,7 +627,10 @@ class NWSAlertCard extends HTMLElement {
         const p = alert.properties;
         const alertId = alert.id;
         const severityClass = `severity-${p.severity || 'Unknown'}`;
-        const isExpanded = this._expandedAlerts.has(alertId);
+        const defaultExpanded = this._config.show_expanded === true;
+        const isExpanded = defaultExpanded
+          ? !this._collapsedAlerts.has(alertId)
+          : this._expandedAlerts.has(alertId);
         
         // Danger marker for severe alerts
         let dangerMarker = '';
@@ -681,13 +687,24 @@ class NWSAlertCard extends HTMLElement {
     if (!toggle) return;
 
     const alertId = toggle.dataset.alertId;
-    
-    if (this._expandedAlerts.has(alertId)) {
-      this._expandedAlerts.delete(alertId);
+    const defaultExpanded = this._config.show_expanded === true;
+
+    if (defaultExpanded) {
+      // When default is expanded, toggle collapsed state
+      if (this._collapsedAlerts.has(alertId)) {
+        this._collapsedAlerts.delete(alertId);
+      } else {
+        this._collapsedAlerts.add(alertId);
+      }
     } else {
-      this._expandedAlerts.add(alertId);
+      // When default is collapsed, toggle expanded state
+      if (this._expandedAlerts.has(alertId)) {
+        this._expandedAlerts.delete(alertId);
+      } else {
+        this._expandedAlerts.add(alertId);
+      }
     }
-    
+
     // Re-render immediately with current data
     this._renderAlerts(Array.from(this._lastAlertIds).map(id => this._alertsCache.get(id)).filter(Boolean));
   }
@@ -716,7 +733,8 @@ class NWSAlertCard extends HTMLElement {
       email: 'homeassistant@example.com',
       title: 'NWS Weather Alert',
       update_interval: 300,
-      show_severity_markers: true
+      show_severity_markers: true,
+      show_expanded: false
     };
   }
 }

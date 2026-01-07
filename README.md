@@ -71,6 +71,7 @@ email: your-email@example.com  # REQUIRED for NWS API compliance
 title: NWS Weather Alert  # Optional, default: "NWS Weather Alert"
 update_interval: 300  # Optional, seconds between updates, default: 300 (5 minutes)
 show_severity_markers: true  # Optional, show markers for severe alerts, default: true
+show_expanded: false  # Optional, show descriptions expanded by default, default: false
 ```
 
 ### Configuration Options
@@ -86,6 +87,7 @@ show_severity_markers: true  # Optional, show markers for severe alerts, default
 | `title` | string | No | `NWS Weather Alert` | Card title |
 | `update_interval` | number | No | `300` | Seconds between alert checks |
 | `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
+| `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default |
 
 
 ### Dynamic Location Support

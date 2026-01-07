@@ -23,7 +23,8 @@ The entire card is implemented in `nws-alert-card.js` as a Web Component extendi
 **State Management:**
 
 - `_lastAlertIds` (Set): Tracks current alert IDs for change detection
-- `_expandedAlerts` (Set): Persists toggle states across updates
+- `_expandedAlerts` (Set): Tracks manually expanded alerts (when `show_expanded: false`)
+- `_collapsedAlerts` (Set): Tracks manually collapsed alerts (when `show_expanded: true`)
 - `_alertsCache` (Map): Caches alert data for re-rendering without re-fetching
 - `_zoneCache` (Map): Caches coordinate-to-zone lookups (24-hour TTL, 10 entry LRU)
 - `_currentZone` (string): Currently active zone code
@@ -153,9 +154,12 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
 
 **Modifying Alert Display:**
 
-- Alert rendering logic is in `_renderAlerts()` (nws-alert-card.js:298-358)
+- Alert rendering logic is in `_renderAlerts()` (nws-alert-card.js:613-677)
 - Uses template strings with escaped content
-- Toggle state checked via `this._expandedAlerts.has(alertId)`
+- Toggle state determined by `show_expanded` config:
+  - When `show_expanded: false` (default): checks `_expandedAlerts.has(alertId)`
+  - When `show_expanded: true`: checks `!_collapsedAlerts.has(alertId)`
+- Allows users to expand/collapse individual alerts regardless of default state
 
 ## Testing Considerations
 
@@ -169,6 +173,10 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
 - Invalid zone codes
 - Network failures (test retry logic)
 - Rapid updates (test state persistence)
+- `show_expanded: true` configuration (alerts start expanded)
+- `show_expanded: false` configuration (alerts start collapsed)
+- Toggling alerts with both `show_expanded` settings
+- State persistence when alerts update with `show_expanded` enabled
 
 **Geolocation testing:**
 
