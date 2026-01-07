@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-01-07
+
+### Added
+- Severity-based action triggers to execute scripts/automations on alerts
+- `minor_action`, `moderate_action`, `severe_action`, `extreme_action` configuration options
+- Actions trigger when new alerts appear or severity increases
+- Only highest severity action triggers (not all levels)
+- `alert_trigger_cooldown` configuration option (default: 60 minutes)
+- Cooldown protection prevents repeated triggers on page reload
+- localStorage-based cooldown tracking persists across browser sessions
+- Per-zone cooldown tracking for multi-card support
+- Queue management prevents concurrent action execution
+- Comprehensive logging for trigger decisions and cooldown status
+- Closes issue #3
+
 ## [2.2.0] - 2026-01-06
 
 ### Added
@@ -101,7 +116,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Links
 
-[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.0.0...v2.0.1
