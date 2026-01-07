@@ -1,4 +1,4 @@
-/* Last modified: 06-Jan-2026 22:21 */
+/* Last modified: 07-Jan-2026 00:04 */
 class NWSAlertCard extends HTMLElement {
   constructor() {
     super();
@@ -15,6 +15,11 @@ class NWSAlertCard extends HTMLElement {
     this._currentZone = null;
     this._isMobile = null;
     this._zoneResolveTimeout = null;
+
+    // Action trigger state tracking
+    this._lastMaxSeverity = null;
+    this._actionQueue = [];
+    this._actionInProgress = false;
 
     // Constants
     this.MAX_RETRIES = 3;
@@ -200,8 +205,28 @@ class NWSAlertCard extends HTMLElement {
       email: sanitizedEmail,
       show_severity_markers: true,
       show_expanded: false,
+      alert_trigger_cooldown: 60,
       ...config
     };
+
+    // Validate action entity IDs if provided
+    const actionFields = ['minor_action', 'moderate_action', 'severe_action', 'extreme_action'];
+    actionFields.forEach(field => {
+      if (this._config[field]) {
+        const entityId = this._config[field].trim();
+        // Validate format: must be script.* or automation.*
+        if (!entityId.match(/^(script|automation)\./)) {
+          console.warn(`NWS Alert Card: '${field}' must be a script or automation entity ID (e.g., script.my_script). Got: ${entityId}`);
+          delete this._config[field];
+        }
+      }
+    });
+
+    // Validate cooldown value
+    if (typeof this._config.alert_trigger_cooldown !== 'number' || this._config.alert_trigger_cooldown < 0) {
+      console.warn(`NWS Alert Card: 'alert_trigger_cooldown' must be a positive number. Got: ${this._config.alert_trigger_cooldown}. Using default: 60`);
+      this._config.alert_trigger_cooldown = 60;
+    }
 
     this._clearAndSetInterval();
   }
@@ -436,6 +461,12 @@ class NWSAlertCard extends HTMLElement {
     this._zoneName = null;
     this._currentZone = null;
     this._isMobile = null;
+
+    // Reset action state
+    this._lastMaxSeverity = null;
+    this._actionQueue = [];
+    this._actionInProgress = false;
+
     // Keep _zoneCache for session
   }
 
@@ -488,7 +519,24 @@ class NWSAlertCard extends HTMLElement {
       const isFirstFetch = this._lastAlertIds.size === 0 && this._content.innerHTML.includes('Loading');
       
       if (isFirstFetch || !this._setsEqual(currentIds, this._lastAlertIds)) {
+        // Check if action should trigger BEFORE updating state
+        const triggerDecision = this._shouldTriggerAction(features);
+
+        // Update state
         this._lastAlertIds = currentIds;
+        const newMaxSeverity = this._getMaxSeverity(features);
+
+        // Trigger action (non-blocking)
+        if (triggerDecision.shouldTrigger && triggerDecision.severity) {
+          this._triggerSeverityAction(triggerDecision.severity).catch(() => {
+            // Error already logged in _triggerSeverityAction
+          });
+        }
+
+        // Update severity tracking
+        this._lastMaxSeverity = newMaxSeverity;
+
+        // Render alerts
         this._renderAlerts(features);
       }
       
@@ -557,6 +605,190 @@ class NWSAlertCard extends HTMLElement {
       if (!set2.has(item)) return false;
     }
     return true;
+  }
+
+  _getSeverityRank(severity) {
+    // Returns numeric rank for severity comparison (higher = more severe)
+    const severityMap = {
+      'Extreme': 4,
+      'Severe': 3,
+      'Moderate': 2,
+      'Minor': 1,
+      'Unknown': 0
+    };
+    return severityMap[severity] || 0;
+  }
+
+  _getMaxSeverity(alerts) {
+    // Returns the highest severity level from active alerts
+    if (!alerts || alerts.length === 0) return null;
+
+    let maxSeverity = 'Unknown';
+    let maxRank = 0;
+
+    alerts.forEach(alert => {
+      const severity = alert.properties?.severity || 'Unknown';
+      const rank = this._getSeverityRank(severity);
+      if (rank > maxRank) {
+        maxRank = rank;
+        maxSeverity = severity;
+      }
+    });
+
+    return maxSeverity;
+  }
+
+  _shouldTriggerAction(currentAlerts) {
+    // Determines if an action should be triggered based on alert changes
+    const currentMaxSeverity = this._getMaxSeverity(currentAlerts);
+
+    // No alerts = no action
+    if (!currentMaxSeverity) {
+      return { shouldTrigger: false, severity: null };
+    }
+
+    // First time seeing alerts (initialization)
+    if (this._lastMaxSeverity === null) {
+      console.log(`NWS Alert Card: Initial alerts detected, max severity: ${currentMaxSeverity}`);
+      return { shouldTrigger: true, severity: currentMaxSeverity };
+    }
+
+    // Check if severity increased
+    const currentRank = this._getSeverityRank(currentMaxSeverity);
+    const previousRank = this._getSeverityRank(this._lastMaxSeverity);
+
+    if (currentRank > previousRank) {
+      console.log(`NWS Alert Card: Severity increased from ${this._lastMaxSeverity} to ${currentMaxSeverity}`);
+      return { shouldTrigger: true, severity: currentMaxSeverity };
+    }
+
+    // Check if new alerts appeared (set comparison)
+    const currentIds = new Set(currentAlerts.map(a => a.id));
+    const hasNewAlerts = !this._setsEqual(currentIds, this._lastAlertIds);
+
+    if (hasNewAlerts) {
+      console.log(`NWS Alert Card: New alerts detected with severity: ${currentMaxSeverity}`);
+      return { shouldTrigger: true, severity: currentMaxSeverity };
+    }
+
+    // No changes warrant triggering
+    return { shouldTrigger: false, severity: null };
+  }
+
+  async _triggerSeverityAction(severity) {
+    // Maps severity to configured action entity ID and triggers it
+    const actionMap = {
+      'Minor': this._config.minor_action,
+      'Moderate': this._config.moderate_action,
+      'Severe': this._config.severe_action,
+      'Extreme': this._config.extreme_action
+    };
+
+    const entityId = actionMap[severity];
+
+    if (!entityId) {
+      // No action configured for this severity level
+      return;
+    }
+
+    // Check cooldown period
+    if (this._isInCooldown(severity)) {
+      console.log(`NWS Alert Card: Skipping ${severity} action trigger - still in cooldown period`);
+      return;
+    }
+
+    // Prevent concurrent triggers
+    if (this._actionInProgress) {
+      console.log(`NWS Alert Card: Action in progress, queueing ${entityId}`);
+      this._actionQueue.push({ severity, entityId });
+      return;
+    }
+
+    this._actionInProgress = true;
+
+    try {
+      // Determine service based on entity domain
+      const domain = entityId.split('.')[0];
+      const service = (domain === 'script') ? 'turn_on' : 'trigger';
+
+      console.log(`NWS Alert Card: Triggering ${severity} severity action: ${entityId}`);
+
+      await this._hass.callService(domain, service, { entity_id: entityId });
+
+      console.log(`NWS Alert Card: Successfully triggered ${entityId}`);
+
+      // Set cooldown timestamp after successful trigger
+      this._setCooldownTimestamp(severity);
+
+    } catch (err) {
+      console.error(`NWS Alert Card: Failed to trigger action ${entityId}:`, err);
+
+    } finally {
+      this._actionInProgress = false;
+
+      // Process queued actions if any
+      if (this._actionQueue.length > 0) {
+        const next = this._actionQueue.shift();
+        setTimeout(() => this._triggerSeverityAction(next.severity), 100);
+      }
+    }
+  }
+
+  _getCooldownKey(severity) {
+    // Generate localStorage key for cooldown tracking
+    // Include zone to support multiple cards with different zones
+    const zone = this._currentZone || 'unknown';
+    return `nws-alert-card-cooldown-${severity}-${zone}`;
+  }
+
+  _isInCooldown(severity) {
+    // Check if action is still in cooldown period
+    const cooldownMinutes = this._config.alert_trigger_cooldown;
+
+    // Cooldown of 0 means no cooldown
+    if (cooldownMinutes === 0) {
+      return false;
+    }
+
+    const cooldownKey = this._getCooldownKey(severity);
+
+    try {
+      const lastTriggerTime = localStorage.getItem(cooldownKey);
+
+      if (!lastTriggerTime) {
+        // Never triggered before
+        return false;
+      }
+
+      const lastTrigger = parseInt(lastTriggerTime, 10);
+      const now = Date.now();
+      const cooldownMs = cooldownMinutes * 60 * 1000;
+      const timeSinceLastTrigger = now - lastTrigger;
+
+      if (timeSinceLastTrigger < cooldownMs) {
+        const remainingMinutes = Math.ceil((cooldownMs - timeSinceLastTrigger) / 60000);
+        console.log(`NWS Alert Card: ${severity} action in cooldown. ${remainingMinutes} minutes remaining.`);
+        return true;
+      }
+
+      return false;
+
+    } catch (err) {
+      // localStorage may not be available or quota exceeded
+      console.warn('NWS Alert Card: Unable to access localStorage for cooldown tracking:', err);
+      return false; // Allow trigger if storage fails
+    }
+  }
+
+  _setCooldownTimestamp(severity) {
+    // Record trigger time for cooldown tracking
+    const cooldownKey = this._getCooldownKey(severity);
+
+    try {
+      localStorage.setItem(cooldownKey, Date.now().toString());
+    } catch (err) {
+      console.warn('NWS Alert Card: Unable to save cooldown timestamp:', err);
+    }
   }
 
   _formatTime(isoString) {
@@ -734,7 +966,12 @@ class NWSAlertCard extends HTMLElement {
       title: 'NWS Weather Alert',
       update_interval: 300,
       show_severity_markers: true,
-      show_expanded: false
+      show_expanded: false,
+      // Optional action triggers
+      moderate_action: 'script.weather_alert_moderate',
+      severe_action: 'script.weather_alert_severe',
+      extreme_action: 'script.weather_alert_extreme',
+      alert_trigger_cooldown: 60
     };
   }
 }

@@ -30,6 +30,9 @@ The entire card is implemented in `nws-alert-card.js` as a Web Component extendi
 - `_currentZone` (string): Currently active zone code
 - `_isMobile` (boolean): Cached mobile detection result
 - `_zoneResolveTimeout` (number): Debounce timer for entity updates
+- `_lastMaxSeverity` (string|null): Tracks previous highest severity level for upgrade detection
+- `_actionQueue` (Array): Queue for pending actions (prevents concurrent triggers)
+- `_actionInProgress` (boolean): Prevents concurrent action execution
 - All state is instance-based (no global state)
 
 **Event Handling:**
@@ -161,6 +164,29 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
   - When `show_expanded: true`: checks `!_collapsedAlerts.has(alertId)`
 - Allows users to expand/collapse individual alerts regardless of default state
 
+**Action Trigger Implementation:**
+
+- Trigger decision logic: `_shouldTriggerAction()` (nws-alert-card.js:~611)
+  - Triggers on: first alerts, severity increase, new alert IDs
+  - Does not trigger on: same alerts, severity decrease, cleared alerts
+- Action execution: `_triggerSeverityAction()` (nws-alert-card.js:~678)
+  - Checks cooldown before triggering via `_isInCooldown()`
+  - Scripts: calls `script.turn_on` service
+  - Automations: calls `automation.trigger` service
+  - Sets cooldown timestamp after successful trigger via `_setCooldownTimestamp()`
+  - Non-blocking async execution with queue management
+- Cooldown management:
+  - `_getCooldownKey()` (nws-alert-card.js:~728): Generates localStorage key including zone
+  - `_isInCooldown()` (nws-alert-card.js:~735): Checks if action is in cooldown period
+  - `_setCooldownTimestamp()` (nws-alert-card.js:~774): Records trigger time
+  - Cooldown tracked per severity level in browser localStorage
+  - Persists across page reloads and browser sessions
+  - Set to 0 to disable cooldown
+- Severity ranking: `_getSeverityRank()` (nws-alert-card.js:~580)
+  - Extreme: 4, Severe: 3, Moderate: 2, Minor: 1, Unknown: 0
+- Maximum severity detection: `_getMaxSeverity()` (nws-alert-card.js:~592)
+  - Scans all active alerts and returns highest severity
+
 ## Testing Considerations
 
 **Test with various scenarios:**
@@ -177,6 +203,24 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
 - `show_expanded: false` configuration (alerts start collapsed)
 - Toggling alerts with both `show_expanded` settings
 - State persistence when alerts update with `show_expanded` enabled
+
+**Action trigger testing:**
+
+- Action triggers with test scripts (verify notifications appear)
+- Severity upgrades (Minor → Moderate → Severe → Extreme)
+- New alerts at same severity (verify trigger)
+- Alerts clearing (verify no trigger)
+- Invalid entity IDs (verify console warnings)
+- Missing entities (verify graceful failure)
+- Concurrent action attempts (verify queue works)
+- Both script.* and automation.* entity types
+- Cooldown behavior:
+  - Verify trigger fires on first alert
+  - Reload page - verify trigger does NOT fire again (cooldown active)
+  - Wait for cooldown period - verify trigger fires again
+  - Set `alert_trigger_cooldown: 0` - verify no cooldown (fires every time)
+  - Check localStorage for cooldown timestamps
+  - Test with different zones (cooldown tracked separately per zone)
 
 **Geolocation testing:**
 

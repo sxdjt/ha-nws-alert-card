@@ -88,7 +88,50 @@ show_expanded: false  # Optional, show descriptions expanded by default, default
 | `update_interval` | number | No | `300` | Seconds between alert checks |
 | `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
 | `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default |
+| `minor_action` | string | No | - | Entity ID of script/automation for Minor severity |
+| `moderate_action` | string | No | - | Entity ID of script/automation for Moderate severity |
+| `severe_action` | string | No | - | Entity ID of script/automation for Severe severity |
+| `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
+| `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
 
+
+### Action Triggers
+
+**⚠️ WARNING: DO NOT RELY ON THIS CARD FOR CRITICAL ALERTS ⚠️**
+
+**Always consult the US National Weather Service for official, up to date weather information.**  The [NOAA Weather Radio](https://www.weather.gov/nwr) page is a good source of information.  NOAA also has information on [weather radios](https://www.weather.gov/mob/nwrhelp).
+
+Configure scripts or automations to run when alerts appear or severity increases.
+
+**Trigger Behavior:**
+
+- Actions trigger when NEW alerts appear OR when severity INCREASES
+- Only the HIGHEST severity action triggers (not all severities)
+- No action when alerts are removed or severity decreases
+- Entity IDs must be `script.*` or `automation.*` format
+- **Cooldown Protection**: After triggering, each severity has a cooldown period (default 60 minutes)
+  - Prevents actions from firing on every page reload
+  - Cooldown tracked per severity level in browser localStorage
+  - Set `alert_trigger_cooldown: 0` to disable cooldown
+
+**Example:**
+
+```yaml
+type: custom:nws-alert-card
+nws_zone: AKZ844
+email: user@example.com
+moderate_action: script.turn_light_yellow
+severe_action: automation.close_curtains
+extreme_action: script.play_alarm_sounds
+alert_trigger_cooldown: 60  # Minutes between triggers (default: 60)
+```
+
+In this example:
+- If a Moderate alert appears: `script.turn_light_yellow` runs
+- If alert upgrades to Severe: `automation.close_curtains` runs
+- If alert upgrades to Extreme: `script.play_alarm_sounds` runs
+- Only the highest severity action triggers each time
+- Each action won't trigger again for 60 minutes (even if you reload the page)
 
 ### Dynamic Location Support
 
