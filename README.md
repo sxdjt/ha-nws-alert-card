@@ -15,8 +15,11 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 ## Features
 
 - Real-time NWS weather alerts for your specified zone
+- **NEW** Dynamic location support for mobile devices with automatic zone resolution
+- **NEW** Separate desktop and mobile location configurations
 - Severity-based color coding (Extreme, Severe, Moderate, Minor, Unknown)
 - Expandable alert descriptions with "Show more/less" toggle
+- 24-hour coordinate-to-zone caching to minimize API calls
 
 ## Installation
 
@@ -27,7 +30,7 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 
 ## Finding Your NWS Zone
 
-To configure the card, you need your NWS zone ID. There are two ways to find it:
+To configure the card, you need your latitude and longitude or a NWS zone ID. There are two ways to find your zone ID:
 
 ### Method 1: NWS Public Zone Page
 
@@ -57,26 +60,87 @@ To configure the card, you need your NWS zone ID. There are two ways to find it:
 
 ## Configuration
 
+### Basic Configuration (Static Zone)
+
 Add the card to your Lovelace dashboard:
 
 ```yaml
 type: custom:nws-alert-card
-nws_zone: WAZ558  # Your NWS zone (REQUIRED)
+nws_zone: AKZ844  # Your NWS zone (REQUIRED if not using lat/lon)
 email: your-email@example.com  # REQUIRED for NWS API compliance
 title: NWS Weather Alert  # Optional, default: "NWS Weather Alert"
 update_interval: 300  # Optional, seconds between updates, default: 300 (5 minutes)
-show_severity_markers: true  # Optional, show ⚠ markers for severe alerts, default: true
+show_severity_markers: true  # Optional, show markers for severe alerts, default: true
 ```
 
 ### Configuration Options
 
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
-| `nws_zone` | string | Yes | - | Your NWS zone ID (e.g., `WAZ558`) |
+| `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. |
+| `latitude` | number or string | Conditional | - | Latitude coordinate (number) or entity ID (string). Required with `longitude` if `nws_zone` not specified. |
+| `longitude` | number or string | Conditional | - | Longitude coordinate (number) or entity ID (string). Required with `latitude` if `nws_zone` not specified. |
+| `mobile_latitude` | number or string | No | - | Mobile override for latitude. Must be used with `mobile_longitude`. |
+| `mobile_longitude` | number or string | No | - | Mobile override for longitude. Must be used with `mobile_latitude`. |
 | `email` | string | Yes | - | Your email for NWS API User-Agent header |
 | `title` | string | No | `NWS Weather Alert` | Card title |
 | `update_interval` | number | No | `300` | Seconds between alert checks |
-| `show_severity_markers` | boolean | No | `true` | Show ⚠ markers for severe alerts |
+| `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
+
+
+### Dynamic Location Support
+
+The card supports automatic geolocation for mobile devices, allowing different zones for desktop and mobile:
+
+#### Static Location with Mobile Tracking
+
+```yaml
+type: custom:nws-alert-card
+latitude: 46.6062  # Home location (desktop)
+longitude: -122.3321
+mobile_latitude: device_tracker.my_phone  # Track phone location on mobile
+mobile_longitude: device_tracker.my_phone
+email: your-email@example.com
+```
+
+#### Mixed Configuration
+
+Use static zone on desktop, track device on mobile:
+
+```yaml
+type: custom:nws-alert-card
+nws_zone: COZ097  # Desktop fallback
+mobile_latitude: device_tracker.my_phone  # Mobile overrides
+mobile_longitude: device_tracker.my_phone
+email: your-email@example.com
+```
+
+#### How It Works
+
+- Coordinates are automatically converted to NWS zones using the NWS Points API
+- Mobile detection uses Home Assistant Companion app detection, mobile user agents, and screen width
+- Zone lookups are cached for 24 hours to minimize API calls
+- Entity locations update dynamically (5-second debounce to prevent excessive API calls)
+
+**On mobile devices:**
+- Uses `mobile_latitude`/`mobile_longitude` if configured
+- Falls back to `latitude`/`longitude` if mobile coords not set
+- Falls back to `nws_zone` if coordinates fail to resolve
+
+**On desktop:**
+- Uses `latitude`/`longitude` if configured
+- Falls back to `nws_zone` if lat/lon not set or fail to resolve
+
+
+### Configuration Precedence
+
+When multiple location options are configured:
+
+1. **Mobile lat/lon** - Used on mobile if `mobile_latitude` and `mobile_longitude` are set
+2. **Base lat/lon** - Used if `latitude` and `longitude` are set
+3. **Static zone** - Used if lat/lon not set or fail to resolve (`nws_zone`)
+
+This allows `nws_zone` to act as a fallback without overriding coordinate-based configuration.
 
 ## Severity Color Coding
 
@@ -87,8 +151,6 @@ Alerts are color-coded by severity on the left border:
 - **Moderate** (Yellow): Possible threat to life/property
 - **Minor** (Green): Minimal threat to life/property
 - **Unknown** (Gray): Severity not specified
-
-
 
 ## API Information
 

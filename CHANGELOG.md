@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.1.0] - 2026-01-06
+
+### Added
+- Dynamic location support with automatic geolocation for mobile devices
+- `latitude` and `longitude` configuration options (number or entity ID)
+- `mobile_latitude` and `mobile_longitude` configuration options for mobile-specific locations
+- Automatic coordinate-to-zone conversion using NWS Points API
+- Entity-based location tracking (device_tracker support)
+- Mobile device detection (Home Assistant Companion app, mobile user agents, screen width)
+- 24-hour coordinate-to-zone caching with LRU eviction (10 entry limit)
+- Debounced zone re-resolution (5-second delay) for entity state changes
+- Configuration precedence system: mobile lat/lon > base lat/lon > nws_zone fallback
+
+### Changed
+- `nws_zone` is now optional if lat/lon coordinates are provided
+- `nws_zone` now acts as a fallback when coordinate resolution fails
+- Improved configuration validation for mixed zone/coordinate configurations
+
 ## [2.0.1] - 2025-12-22
 
 ### Fixed
@@ -76,7 +94,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Links
 
-[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.0.1...HEAD
+[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.0.1...v2.1.0
 [2.0.1]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.0.0...v2.0.1
 [2.0.0]: https://github.com/sxdjt/ha-nws-alert-card/releases/tag/v2.0.0
 [1.0.0]: https://github.com/sxdjt/ha-nws-alert-card/releases/tag/v1.0.0

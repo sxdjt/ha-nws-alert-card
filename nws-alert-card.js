@@ -1,4 +1,4 @@
-/* Last modified: 22-Dec-2025 01:19 */
+/* Last modified: 06-Jan-2026 20:32 */
 class NWSAlertCard extends HTMLElement {
   constructor() {
     super();
@@ -10,7 +10,11 @@ class NWSAlertCard extends HTMLElement {
     this._alertsCache = new Map();
     this._retryCount = 0;
     this._zoneName = null;
-    
+    this._zoneCache = new Map();
+    this._currentZone = null;
+    this._isMobile = null;
+    this._zoneResolveTimeout = null;
+
     // Constants
     this.MAX_RETRIES = 3;
     this.BASE_RETRY_DELAY = 5000;
@@ -143,16 +147,50 @@ class NWSAlertCard extends HTMLElement {
     this.shadowRoot.appendChild(style);
   }
 
+  set hass(hass) {
+    const oldHass = this._hass;
+    this._hass = hass;
+
+    // Check if any coordinate config is entity-based (string)
+    const hasEntityCoords =
+      (typeof this._config.latitude === 'string') ||
+      (typeof this._config.longitude === 'string') ||
+      (typeof this._config.mobile_latitude === 'string') ||
+      (typeof this._config.mobile_longitude === 'string');
+
+    if (hasEntityCoords && oldHass !== hass) {
+      // Debounce zone re-resolution (5 second delay)
+      if (!this._zoneResolveTimeout) {
+        this._zoneResolveTimeout = setTimeout(async () => {
+          const newZone = await this._getActiveZone();
+          if (newZone && newZone !== this._currentZone) {
+            console.log(`NWS Alert Card: Zone changed from ${this._currentZone} to ${newZone}`);
+            this._currentZone = newZone;
+            this._zoneName = null;
+            this._fetchZoneName();
+            this._fetchAlerts();
+          }
+          this._zoneResolveTimeout = null;
+        }, 5000);
+      }
+    }
+  }
+
   setConfig(config) {
-    if (!config.nws_zone) {
-      throw new Error("'nws_zone' is required in card configuration");
+    // Validate configuration - either nws_zone OR latitude/longitude must be provided
+    const hasZone = config.nws_zone;
+    const hasLatLon = config.latitude !== undefined && config.longitude !== undefined;
+
+    if (!hasZone && !hasLatLon) {
+      throw new Error("Either 'nws_zone' or both 'latitude' and 'longitude' are required in card configuration");
     }
-    
-    // Validate zone format (basic check)
-    if (!/^[A-Z]{2}[CZ]\d{3}$/.test(config.nws_zone)) {
-      console.warn(`NWS Alert Card: '${config.nws_zone}' may not be a valid zone format (expected: SSZNNN or SSCNNN)`);
+
+    // Validate mobile config if provided (both must be present)
+    if ((config.mobile_latitude !== undefined || config.mobile_longitude !== undefined) &&
+        (config.mobile_latitude === undefined || config.mobile_longitude === undefined)) {
+      console.warn("Both 'mobile_latitude' and 'mobile_longitude' must be provided together. Mobile override will be ignored.");
     }
-    
+
     const sanitizedEmail = this._sanitizeEmail(config.email || 'homeassistant@example.com');
 
     this._config = {
@@ -162,7 +200,7 @@ class NWSAlertCard extends HTMLElement {
       show_severity_markers: true,
       ...config
     };
-    
+
     this._clearAndSetInterval();
   }
 
@@ -170,29 +208,232 @@ class NWSAlertCard extends HTMLElement {
     // Basic email validation and sanitization
     const cleaned = email.trim().toLowerCase();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    
+
     if (!emailRegex.test(cleaned)) {
       console.warn('NWS Alert Card: Invalid email format, using default');
       return 'homeassistant@example.com';
     }
-    
+
     return cleaned;
   }
 
-  connectedCallback() {
+  _isMobileDevice() {
+    // Cache result since user agent doesn't change during session
+    if (this._isMobile !== null) {
+      return this._isMobile;
+    }
+
+    const userAgent = navigator.userAgent.toLowerCase();
+
+    // Check 1: Home Assistant Companion app
+    const isHAApp = userAgent.includes('home assistant');
+
+    // Check 2: Common mobile user agents
+    const isMobileUA = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
+
+    // Check 3: Screen width (mobile-sized)
+    const isMobileScreen = window.innerWidth <= 768;
+
+    // Device is mobile if HA app OR (mobile UA AND mobile screen)
+    this._isMobile = isHAApp || (isMobileUA && isMobileScreen);
+    return this._isMobile;
+  }
+
+  _resolveCoordinate(coordConfig, coordType) {
+    if (coordConfig === undefined || coordConfig === null) return null;
+
+    // If it's a number, return it directly
+    if (typeof coordConfig === 'number') {
+      return coordConfig;
+    }
+
+    // If it's a string, treat as entity ID
+    if (typeof coordConfig === 'string') {
+      if (!coordConfig.includes('.')) {
+        console.warn(`NWS Alert Card: '${coordConfig}' does not appear to be a valid entity ID`);
+        return null;
+      }
+
+      if (!this._hass || !this._hass.states) {
+        console.warn('NWS Alert Card: Home Assistant state not available');
+        return null;
+      }
+
+      const entityState = this._hass.states[coordConfig];
+      if (!entityState) {
+        console.warn(`NWS Alert Card: Entity '${coordConfig}' not found`);
+        return null;
+      }
+
+      const attrName = coordType === 'latitude' ? 'latitude' : 'longitude';
+      const value = entityState.attributes[attrName];
+
+      if (value === undefined || value === null) {
+        console.warn(`NWS Alert Card: Entity '${coordConfig}' missing '${attrName}' attribute`);
+        return null;
+      }
+
+      const numValue = typeof value === 'number' ? value : parseFloat(value);
+
+      if (isNaN(numValue)) {
+        console.warn(`NWS Alert Card: Invalid ${coordType} value in entity '${coordConfig}'`);
+        return null;
+      }
+
+      // Validate ranges
+      if (coordType === 'latitude' && (numValue < -90 || numValue > 90)) {
+        console.warn(`NWS Alert Card: Invalid latitude ${numValue} (must be -90 to 90)`);
+        return null;
+      }
+
+      if (coordType === 'longitude' && (numValue < -180 || numValue > 180)) {
+        console.warn(`NWS Alert Card: Invalid longitude ${numValue} (must be -180 to 180)`);
+        return null;
+      }
+
+      return numValue;
+    }
+
+    console.warn(`NWS Alert Card: Invalid ${coordType} config type:`, coordConfig);
+    return null;
+  }
+
+  async _fetchZoneFromCoordinates(lat, lon) {
+    // Round to 4 decimal places (~11m precision) for cache key
+    const cacheKey = `${lat.toFixed(4)},${lon.toFixed(4)}`;
+
+    // Check cache first (24 hour TTL)
+    const cached = this._zoneCache.get(cacheKey);
+    if (cached && (Date.now() - cached.timestamp) < 86400000) {
+      console.log(`NWS Alert Card: Using cached zone ${cached.zone} for ${cacheKey}`);
+      return cached.zone;
+    }
+
+    // Call NWS Points API
+    const url = `https://api.weather.gov/points/${lat},${lon}`;
+
+    try {
+      const response = await fetch(url, {
+        headers: {
+          'User-Agent': `Home Assistant Custom Card / ${this._config.email}`,
+          'Accept': 'application/geo+json'
+        },
+        signal: AbortSignal.timeout(10000)
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      // Extract zone from forecastZone URL
+      const forecastZone = data.properties?.forecastZone;
+      if (!forecastZone) {
+        throw new Error('No forecastZone in API response');
+      }
+
+      const zone = forecastZone.split('/').pop();
+
+      // Validate zone format
+      if (!/^[A-Z]{2}[CZ]\d{3}$/.test(zone)) {
+        throw new Error(`Invalid zone format: ${zone}`);
+      }
+
+      // Cache the result
+      this._zoneCache.set(cacheKey, {
+        zone: zone,
+        timestamp: Date.now()
+      });
+
+      // Limit cache size to 10 entries (LRU)
+      if (this._zoneCache.size > 10) {
+        const firstKey = this._zoneCache.keys().next().value;
+        this._zoneCache.delete(firstKey);
+      }
+
+      console.log(`NWS Alert Card: Resolved coordinates ${cacheKey} to zone ${zone}`);
+      return zone;
+
+    } catch (err) {
+      console.error(`NWS Alert Card: Failed to fetch zone for ${lat},${lon}:`, err);
+      return null;
+    }
+  }
+
+  async _getActiveZone() {
+    const isMobile = this._isMobileDevice();
+
+    // Determine which lat/lon to use based on device type
+    let latConfig, lonConfig;
+    if (isMobile && this._config.mobile_latitude !== undefined && this._config.mobile_longitude !== undefined) {
+      latConfig = this._config.mobile_latitude;
+      lonConfig = this._config.mobile_longitude;
+      console.log('NWS Alert Card: Using mobile location configuration');
+    } else if (this._config.latitude !== undefined && this._config.longitude !== undefined) {
+      latConfig = this._config.latitude;
+      lonConfig = this._config.longitude;
+      console.log('NWS Alert Card: Using base location configuration');
+    } else {
+      // No lat/lon config found, fall back to nws_zone if present
+      if (this._config.nws_zone) {
+        console.log('NWS Alert Card: Using legacy nws_zone configuration');
+        return this._config.nws_zone;
+      }
+      console.error('NWS Alert Card: No location configuration found');
+      return null;
+    }
+
+    // Resolve coordinates
+    const lat = this._resolveCoordinate(latConfig, 'latitude');
+    const lon = this._resolveCoordinate(lonConfig, 'longitude');
+
+    if (lat === null || lon === null) {
+      // Coordinates failed to resolve, fall back to nws_zone if present
+      if (this._config.nws_zone) {
+        console.warn('NWS Alert Card: Coordinate resolution failed, falling back to nws_zone');
+        return this._config.nws_zone;
+      }
+      console.error('NWS Alert Card: Unable to resolve coordinates and no nws_zone fallback');
+      return null;
+    }
+
+    // Convert coordinates to zone
+    return await this._fetchZoneFromCoordinates(lat, lon);
+  }
+
+  async connectedCallback() {
     // Force initial render
     this._renderContent(`<h2 class="card-title">${this._config.title || 'NWS Weather Alert'}</h2><div class="no-alerts">Loading...</div>`);
+
+    // Resolve active zone
+    this._currentZone = await this._getActiveZone();
+
+    if (!this._currentZone) {
+      this._renderContent(
+        `<h2 class="card-title">${this._config.title}</h2>` +
+        '<div class="error-message">Unable to determine NWS zone. Check configuration.</div>'
+      );
+      return;
+    }
+
     this._fetchZoneName();
     this._clearAndSetInterval();
   }
 
   disconnectedCallback() {
     if (this._interval) clearInterval(this._interval);
+    if (this._zoneResolveTimeout) clearTimeout(this._zoneResolveTimeout);
+
     this._interval = null;
+    this._zoneResolveTimeout = null;
     this._lastAlertIds.clear();
     this._expandedAlerts.clear();
     this._alertsCache.clear();
     this._zoneName = null;
+    this._currentZone = null;
+    this._isMobile = null;
+    // Keep _zoneCache for session
   }
 
   _clearAndSetInterval() {
@@ -204,9 +445,18 @@ class NWSAlertCard extends HTMLElement {
   }
 
   async _fetchAlerts() {
-    const zone = this._config.nws_zone;
+    const zone = this._currentZone;
+
+    if (!zone) {
+      this._renderContent(
+        `<h2 class="card-title">${this._config.title}</h2>` +
+        '<div class="error-message">No active zone configured.</div>'
+      );
+      return;
+    }
+
     const url = `https://api.weather.gov/alerts/active/zone/${zone}`;
-    
+
     try {
       const response = await fetch(url, {
         headers: { 
@@ -263,7 +513,7 @@ class NWSAlertCard extends HTMLElement {
   async _fetchZoneName() {
     if (this._zoneName) return; // Already fetched
 
-    const zone = this._config.nws_zone;
+    const zone = this._currentZone;
     if (!zone) return;
 
     const url = `https://api.weather.gov/zones/forecast/${zone}`;
@@ -459,7 +709,10 @@ class NWSAlertCard extends HTMLElement {
 
   static getStubConfig() {
     return {
-      nws_zone: 'WAZ558',
+      latitude: 47,
+      longitude: -122,
+      mobile_latitude: 'device_tracker.my_phone',
+      mobile_longitude: 'device_tracker.my_phone',
       email: 'homeassistant@example.com',
       title: 'NWS Weather Alert',
       update_interval: 300,

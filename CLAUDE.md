@@ -25,6 +25,10 @@ The entire card is implemented in `nws-alert-card.js` as a Web Component extendi
 - `_lastAlertIds` (Set): Tracks current alert IDs for change detection
 - `_expandedAlerts` (Set): Persists toggle states across updates
 - `_alertsCache` (Map): Caches alert data for re-rendering without re-fetching
+- `_zoneCache` (Map): Caches coordinate-to-zone lookups (24-hour TTL, 10 entry LRU)
+- `_currentZone` (string): Currently active zone code
+- `_isMobile` (boolean): Cached mobile detection result
+- `_zoneResolveTimeout` (number): Debounce timer for entity updates
 - All state is instance-based (no global state)
 
 **Event Handling:**
@@ -35,10 +39,30 @@ The entire card is implemented in `nws-alert-card.js` as a Web Component extendi
 
 **API Integration:**
 
-- Fetches from `https://api.weather.gov/alerts/active/zone/{zone}`
+- Alert fetching: `https://api.weather.gov/alerts/active/zone/{zone}`
+- Zone lookup: `https://api.weather.gov/points/{lat},{lon}` (extracts `forecastZone`)
 - 10-second fetch timeout via `AbortSignal.timeout(10000)`
 - Exponential backoff retry logic (max 3 attempts, starting at 5s delay)
 - User-Agent header required: `Home Assistant Custom Card / {email}`
+
+**Geolocation Features:**
+
+- Mobile detection via `_isMobileDevice()`:
+  - Home Assistant Companion app user agent detection
+  - Mobile user agent patterns (android, iphone, etc.)
+  - Screen width check (768px breakpoint)
+- Coordinate resolution via `_resolveCoordinate()`:
+  - Accepts numbers or entity ID strings
+  - Extracts lat/lon from entity attributes
+  - Validates coordinate ranges (-90 to 90 for lat, -180 to 180 for lon)
+- Zone resolution via `_getActiveZone()`:
+  - Priority: mobile lat/lon > base lat/lon > nws_zone fallback
+  - Converts coordinates to NWS zones using Points API
+  - Caches results for 24 hours (LRU eviction at 10 entries)
+- Dynamic updates via `set hass()`:
+  - Detects entity-based coordinate configs
+  - Debounces zone re-resolution (5-second delay)
+  - Triggers alert refresh when zone changes
 
 **Rendering Approach:**
 
@@ -146,11 +170,30 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
 - Network failures (test retry logic)
 - Rapid updates (test state persistence)
 
+**Geolocation testing:**
+
+- Static coordinates (number values for lat/lon)
+- Entity-based coordinates (device_tracker entities)
+- Mobile vs desktop device detection
+- Mobile override with `mobile_latitude`/`mobile_longitude`
+- Legacy `nws_zone` configuration (backwards compatibility)
+- Mixed configurations (zone + coordinates)
+- Entity state changes (verify zone re-resolution with debounce)
+- Coordinate-to-zone cache behavior
+- Invalid coordinates (outside US, out of range)
+- Missing entity or entity without lat/lon attributes
+
 **Browser console debugging:**
 
 - Card logs warnings for invalid zone formats
 - Logs retry attempts with delays
 - Logs fetch errors with details
+- Logs device type detection: "Using mobile/base location configuration"
+- Logs zone resolution: "Resolved coordinates X,Y to zone Z"
+- Logs cache hits: "Using cached zone Z for X,Y"
+- Logs zone changes: "Zone changed from X to Y"
+- Logs entity errors: "Entity 'X' not found", "Entity 'X' missing latitude/longitude attributes"
+- Logs coordinate validation errors: "Invalid latitude/longitude value"
 
 ## HACS Integration
 
