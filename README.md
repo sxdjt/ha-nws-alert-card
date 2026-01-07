@@ -79,20 +79,20 @@ show_expanded: false  # Optional, show descriptions expanded by default, default
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
 | `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. |
+| `email` | string | Yes | - | Your email for NWS API User-Agent header |
 | `latitude` | number or string | Conditional | - | Latitude coordinate (number) or entity ID (string). Required with `longitude` if `nws_zone` not specified. |
 | `longitude` | number or string | Conditional | - | Longitude coordinate (number) or entity ID (string). Required with `latitude` if `nws_zone` not specified. |
+| `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
+| `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
+| `minor_action` | string | No | - | Entity ID of script/automation for Minor severity |
 | `mobile_latitude` | number or string | No | - | Mobile override for latitude. Must be used with `mobile_longitude`. |
 | `mobile_longitude` | number or string | No | - | Mobile override for longitude. Must be used with `mobile_latitude`. |
-| `email` | string | Yes | - | Your email for NWS API User-Agent header |
-| `title` | string | No | `NWS Weather Alert` | Card title |
-| `update_interval` | number | No | `300` | Seconds between alert checks |
-| `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
-| `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default |
-| `minor_action` | string | No | - | Entity ID of script/automation for Minor severity |
 | `moderate_action` | string | No | - | Entity ID of script/automation for Moderate severity |
 | `severe_action` | string | No | - | Entity ID of script/automation for Severe severity |
-| `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
-| `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
+| `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default |
+| `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
+| `title` | string | No | `NWS Weather Alert` | Card title |
+| `update_interval` | number | No | `300` | Seconds between alert checks |
 
 
 ### Action Triggers
