@@ -853,7 +853,7 @@ class NWSAlertCard extends HTMLElement {
     }
 
     if (!alerts || alerts.length === 0) {
-      html += '<div class="no-alerts">✓ No active alerts at this time</div>';
+      html += '<div class="no-alerts">No active alerts at this time</div>';
     } else {
       alerts.forEach(alert => {
         const p = alert.properties;
@@ -868,9 +868,9 @@ class NWSAlertCard extends HTMLElement {
         let dangerMarker = '';
         if (this._config.show_severity_markers !== false) {
           if (p.severity === 'Extreme') {
-            dangerMarker = '<span class="danger-marker" aria-label="Extreme severity">🔴🔴🔴</span>';
+            dangerMarker = '<span class="danger-marker" aria-label="Extreme severity">🔴🔴🔴 </span>';
           } else if (p.severity === 'Severe') {
-            dangerMarker = '<span class="danger-marker" aria-label="Severe severity">🟠🟠</span>';
+            dangerMarker = '<span class="danger-marker" aria-label="Severe severity">🟠🟠 </span>';
           }
         }
         

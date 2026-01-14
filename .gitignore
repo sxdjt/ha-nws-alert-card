@@ -1,0 +1,16 @@
+# macOS
+.DS_Store
+
+# Claude Code local instructions
+CLAUDE.md
+claude.md
+
+# Node modules (if any)
+node_modules/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
