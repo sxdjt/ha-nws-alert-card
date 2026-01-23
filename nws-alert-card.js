@@ -1,4 +1,4 @@
-/* Last modified: 07-Jan-2026 00:04 */
+/* Last modified: 22-Jan-2026 08:45 */
 class NWSAlertCard extends HTMLElement {
   constructor() {
     super();
@@ -884,7 +884,7 @@ class NWSAlertCard extends HTMLElement {
                 ${dangerMarker}${this._escapeHtml(p.event || 'Unknown Event')}
               </h3>
               <span class="times" aria-label="Alert timeframe">
-                ${this._formatTime(p.onset)} → ${this._formatTime(p.expires)}
+                ${this._formatTime(p.onset)} → ${this._formatTime(p.ends || p.expires)}
               </span>
             </div>
             <div class="alert-meta">
