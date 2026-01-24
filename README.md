@@ -22,6 +22,7 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 - Severity-based color coding (Extreme, Severe, Moderate, Minor, Unknown)
 - Expandable alert descriptions with "Show more/less" toggle
 - 24-hour coordinate-to-zone caching to minimize API calls
+- **Alert entity integration** for automations and conditional cards (stores alert types sorted by NWS priority)
 
 ## Installation
 
@@ -80,8 +81,9 @@ show_expanded: false  # Optional, show descriptions expanded by default, default
 
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
-| `email` | string | Yes | - | Your email for NWS API User-Agent header |
+| `alert_entity` | string | No | - | Entity ID of input_text helper for alert data (e.g., `input_text.nws_alert_types`) |
 | `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
+| `email` | string | Yes | - | Your email for NWS API User-Agent header |
 | `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
 | `latitude` | number or string | Conditional | - | Latitude coordinate (number) or entity ID (string). Required with `longitude` if `nws_zone` not specified. |
 | `longitude` | number or string | Conditional | - | Longitude coordinate (number) or entity ID (string). Required with `latitude` if `nws_zone` not specified. |
@@ -99,7 +101,7 @@ show_expanded: false  # Optional, show descriptions expanded by default, default
 
 ### Action Triggers
 
-**⚠️ WARNING: DO NOT RELY ON THIS CARD FOR CRITICAL ALERTS ⚠️**
+**⛔️ WARNING: DO NOT RELY ON THIS CARD FOR CRITICAL ALERTS ⛔️**
 
 **Always consult the US National Weather Service for official, up to date weather information.**  The [NOAA Weather Radio](https://www.weather.gov/nwr) page is a good source of information.  NOAA also has information on [weather radios](https://www.weather.gov/mob/nwrhelp).
 
@@ -134,6 +136,12 @@ In this example:
 - If alert upgrades to Extreme: `script.play_alarm_sounds` runs
 - Only the highest severity action triggers each time
 - Each action won't trigger again for 60 minutes (even if you reload the page)
+
+### Alert Entity Integration
+
+Store active alert data in a Home Assistant entity for use in automations and conditional cards. Alerts are sorted by official NWS priority order (Tsunami Warning highest, Blue Alert lowest).
+
+See [Alerts.md](Alerts.md) for setup instructions and examples.
 
 ### Dynamic Location Support
 

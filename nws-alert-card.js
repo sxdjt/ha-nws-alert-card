@@ -1,4 +1,121 @@
-/* Last modified: 22-Jan-2026 08:45 */
+/* Last modified: 23-Jan-2026 10:30 */
+
+// NWS Alert Priority Order (highest priority first)
+// Source: https://www.weather.gov/help-map/
+const NWS_ALERT_PRIORITY = [
+  'Tsunami Warning',
+  'Tornado Warning',
+  'Extreme Wind Warning',
+  'Severe Thunderstorm Warning',
+  'Flash Flood Warning',
+  'Flash Flood Statement',
+  'Severe Weather Statement',
+  'Shelter In Place Warning',
+  'Evacuation Immediate',
+  'Civil Danger Warning',
+  'Nuclear Power Plant Warning',
+  'Radiological Hazard Warning',
+  'Hazardous Materials Warning',
+  'Fire Warning',
+  'Civil Emergency Message',
+  'Law Enforcement Warning',
+  'Storm Surge Warning',
+  'Hurricane Force Wind Warning',
+  'Hurricane Warning',
+  'Typhoon Warning',
+  'Special Marine Warning',
+  'Blizzard Warning',
+  'Snow Squall Warning',
+  'Ice Storm Warning',
+  'Heavy Freezing Spray Warning',
+  'Winter Storm Warning',
+  'Lake Effect Snow Warning',
+  'Dust Storm Warning',
+  'Blowing Dust Warning',
+  'High Wind Warning',
+  'Tropical Storm Warning',
+  'Storm Warning',
+  'Tsunami Advisory',
+  'Tsunami Watch',
+  'Avalanche Warning',
+  'Earthquake Warning',
+  'Volcano Warning',
+  'Ashfall Warning',
+  'Flood Warning',
+  'Coastal Flood Warning',
+  'Lakeshore Flood Warning',
+  'Ashfall Advisory',
+  'High Surf Warning',
+  'Extreme Heat Warning',
+  'Tornado Watch',
+  'Severe Thunderstorm Watch',
+  'Flash Flood Watch',
+  'Gale Warning',
+  'Flood Statement',
+  'Extreme Cold Warning',
+  'Freeze Warning',
+  'Red Flag Warning',
+  'Storm Surge Watch',
+  'Hurricane Watch',
+  'Hurricane Force Wind Watch',
+  'Typhoon Watch',
+  'Tropical Storm Watch',
+  'Storm Watch',
+  'Tropical Cyclone Local Statement',
+  'Winter Weather Advisory',
+  'Avalanche Advisory',
+  'Cold Weather Advisory',
+  'Heat Advisory',
+  'Flood Advisory',
+  'Coastal Flood Advisory',
+  'Lakeshore Flood Advisory',
+  'High Surf Advisory',
+  'Dense Fog Advisory',
+  'Dense Smoke Advisory',
+  'Small Craft Advisory',
+  'Brisk Wind Advisory',
+  'Hazardous Seas Warning',
+  'Dust Advisory',
+  'Blowing Dust Advisory',
+  'Lake Wind Advisory',
+  'Wind Advisory',
+  'Frost Advisory',
+  'Freezing Fog Advisory',
+  'Freezing Spray Advisory',
+  'Low Water Advisory',
+  'Local Area Emergency',
+  'Winter Storm Watch',
+  'Rip Current Statement',
+  'Beach Hazards Statement',
+  'Gale Watch',
+  'Avalanche Watch',
+  'Hazardous Seas Watch',
+  'Heavy Freezing Spray Watch',
+  'Flood Watch',
+  'Coastal Flood Watch',
+  'Lakeshore Flood Watch',
+  'High Wind Watch',
+  'Extreme Heat Watch',
+  'Extreme Cold Watch',
+  'Freeze Watch',
+  'Fire Weather Watch',
+  'Extreme Fire Danger',
+  '911 Telephone Outage',
+  'Coastal Flood Statement',
+  'Lakeshore Flood Statement',
+  'Special Weather Statement',
+  'Marine Weather Statement',
+  'Air Quality Alert',
+  'Air Stagnation Advisory',
+  'Hazardous Weather Outlook',
+  'Hydrologic Outlook',
+  'Short Term Forecast',
+  'Administrative Message',
+  'Test',
+  'Child Abduction Emergency',
+  'Blue Alert'
+];
+
 class NWSAlertCard extends HTMLElement {
   constructor() {
     super();
@@ -226,6 +343,15 @@ class NWSAlertCard extends HTMLElement {
     if (typeof this._config.alert_trigger_cooldown !== 'number' || this._config.alert_trigger_cooldown < 0) {
       console.warn(`NWS Alert Card: 'alert_trigger_cooldown' must be a positive number. Got: ${this._config.alert_trigger_cooldown}. Using default: 60`);
       this._config.alert_trigger_cooldown = 60;
+    }
+
+    // Validate alert_entity if provided (must be input_text entity)
+    if (this._config.alert_entity) {
+      const entityId = this._config.alert_entity.trim();
+      if (!entityId.match(/^input_text\./)) {
+        console.warn(`NWS Alert Card: 'alert_entity' must be an input_text entity ID (e.g., input_text.nws_alert_types). Got: ${entityId}`);
+        delete this._config.alert_entity;
+      }
     }
 
     this._clearAndSetInterval();
@@ -536,6 +662,9 @@ class NWSAlertCard extends HTMLElement {
         // Update severity tracking
         this._lastMaxSeverity = newMaxSeverity;
 
+        // Update alert entity (if configured)
+        this._updateAlertEntity(features);
+
         // Render alerts
         this._renderAlerts(features);
       }
@@ -791,6 +920,66 @@ class NWSAlertCard extends HTMLElement {
     }
   }
 
+  _getAlertPriority(eventType) {
+    // Returns priority index (lower = higher priority)
+    // Unknown types get max priority value (sorted to end)
+    const index = NWS_ALERT_PRIORITY.indexOf(eventType);
+    return index === -1 ? NWS_ALERT_PRIORITY.length : index;
+  }
+
+  _sortAlertsByPriority(alerts) {
+    // Sort alerts by official NWS priority order
+    return [...alerts].sort((a, b) => {
+      const eventA = a.properties?.event || '';
+      const eventB = b.properties?.event || '';
+      return this._getAlertPriority(eventA) - this._getAlertPriority(eventB);
+    });
+  }
+
+  _updateAlertEntity(alerts) {
+    // Update the configured input_text entity with current alert data
+    const entityId = this._config.alert_entity;
+    if (!entityId || !this._hass) return;
+
+    // Verify entity exists
+    if (!this._hass.states[entityId]) {
+      console.warn(`NWS Alert Card: Alert entity '${entityId}' not found. Create an input_text helper with this entity ID.`);
+      return;
+    }
+
+    // Sort alerts by NWS priority
+    const sortedAlerts = this._sortAlertsByPriority(alerts);
+
+    // Format as "Event Type:Severity" pairs, comma-separated
+    let value = '';
+    if (sortedAlerts.length > 0) {
+      value = sortedAlerts
+        .map(alert => {
+          const event = alert.properties?.event || 'Unknown';
+          const severity = alert.properties?.severity || 'Unknown';
+          return `${event}:${severity}`;
+        })
+        .join(',');
+
+      // Warn if value exceeds input_text limit (255 chars)
+      if (value.length > 255) {
+        console.warn(`NWS Alert Card: Alert data exceeds 255 character limit (${value.length} chars). Some alerts may be truncated.`);
+        // Truncate at last complete entry before 255 chars
+        const truncated = value.substring(0, 255);
+        const lastComma = truncated.lastIndexOf(',');
+        value = lastComma > 0 ? truncated.substring(0, lastComma) : truncated;
+      }
+    }
+
+    // Call input_text.set_value service
+    this._hass.callService('input_text', 'set_value', {
+      entity_id: entityId,
+      value: value
+    }).catch(err => {
+      console.error(`NWS Alert Card: Failed to update alert entity '${entityId}':`, err);
+    });
+  }
+
   _formatTime(isoString) {
     if (!isoString) return 'N/A';
     try {
@@ -967,6 +1156,8 @@ class NWSAlertCard extends HTMLElement {
       update_interval: 300,
       show_severity_markers: true,
       show_expanded: false,
+      // Optional alert entity for automation integration
+      alert_entity: 'input_text.nws_alert_types',
       // Optional action triggers
       moderate_action: 'script.weather_alert_moderate',
       severe_action: 'script.weather_alert_severe',

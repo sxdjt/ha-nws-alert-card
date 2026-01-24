@@ -187,6 +187,26 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
 - Maximum severity detection: `_getMaxSeverity()` (nws-alert-card.js:~592)
   - Scans all active alerts and returns highest severity
 
+**Alert Entity Integration:**
+
+- Config option: `alert_entity` (must be `input_text.*` entity)
+- Priority constant: `NWS_ALERT_PRIORITY` (111 alert types, top of file)
+  - Source: https://www.weather.gov/help-map/
+  - Tsunami Warning = highest priority (index 0)
+  - Blue Alert = lowest priority (index 110)
+- Priority lookup: `_getAlertPriority()` (nws-alert-card.js:~920)
+  - Returns index in priority array (lower = higher priority)
+  - Unknown types return max value (sorted to end)
+- Alert sorting: `_sortAlertsByPriority()` (nws-alert-card.js:~927)
+  - Sorts alerts by NWS priority order
+- Entity update: `_updateAlertEntity()` (nws-alert-card.js:~936)
+  - Validates entity exists before updating
+  - Formats as "EventType:Severity" pairs, comma-separated
+  - Handles 255 character limit with truncation
+  - Called from `_fetchAlerts()` when alerts change
+- Data format: `"Tornado Warning:Extreme,Wind Advisory:Minor"`
+- Empty state: empty string (no alerts)
+
 ## Testing Considerations
 
 **Test with various scenarios:**
@@ -222,6 +242,17 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
   - Check localStorage for cooldown timestamps
   - Test with different zones (cooldown tracked separately per zone)
 
+**Alert entity testing:**
+
+- Verify input_text entity is updated when alerts change
+- Verify alerts are sorted by NWS priority (Tsunami Warning before Frost Advisory)
+- Verify format is "EventType:Severity" pairs, comma-separated
+- Verify empty string when no alerts
+- Verify console warning when entity doesn't exist
+- Verify truncation warning when data exceeds 255 characters
+- Verify unknown alert types sort to end of list
+- Test with multiple alerts of varying priorities
+
 **Geolocation testing:**
 
 - Static coordinates (number values for lat/lon)
@@ -246,6 +277,8 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
 - Logs zone changes: "Zone changed from X to Y"
 - Logs entity errors: "Entity 'X' not found", "Entity 'X' missing latitude/longitude attributes"
 - Logs coordinate validation errors: "Invalid latitude/longitude value"
+- Logs alert entity errors: "Alert entity 'X' not found", "Failed to update alert entity"
+- Logs truncation warning when alert data exceeds 255 characters
 
 ## HACS Integration
 
