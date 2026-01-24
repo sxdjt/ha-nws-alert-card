@@ -143,7 +143,7 @@ In this example:
 
 Store active alert data in a Home Assistant entity for use in automations and conditional cards. Alerts are sorted by official NWS priority order (Tsunami Warning highest, Blue Alert lowest).
 
-See [Alerts.md](Alerts.md) for setup instructions and examples.
+ℹ️ See [Alerts.md](Alerts.md) for setup instructions and examples.
 
 ### Dynamic Location Support
 
