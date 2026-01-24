@@ -2,10 +2,20 @@
 
 All notable changes to the NWS Alert Card will be documented in this file.
 
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
 ## [Unreleased]
+
+## [2.4.0] - 2026-01-24
+
+### Added
+- **Alert entity integration** for automations and conditional cards (closes #2)
+  - `alert_entity` configuration option to store alerts in an input_text helper
+  - Alerts sorted by official NWS priority order (111 alert types, Tsunami Warning highest)
+  - Data format: comma-separated `EventType:Severity` pairs
+  - New [Alerts.md](Alerts.md) documentation with setup instructions and automation examples
+- **Visual configuration editor** for the Home Assistant UI
+  - Editor organized into 5 collapsible sections: Basic Settings, Display Options, Location, Alert Entity Integration, and Action Triggers
+  - Entity pickers with domain filtering (input_text for alert entity, script/automation for actions)
+  - Helper text for all configuration fields
 
 ## [2.3.1] - 2026-01-22
 
@@ -121,7 +131,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Links
 
-[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.3.1...HEAD
+[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.3.1...v2.4.0
 [2.3.1]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.2.0...v2.3.0
 [2.2.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.1.0...v2.2.0

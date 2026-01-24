@@ -17,6 +17,7 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 ## Features
 
 - Real-time NWS weather alerts for your specified zone
+- **Visual configuration editor** - configure the card through the Home Assistant UI
 - **[Dynamic location support](#dynamic-location-support)** for mobile devices with automatic zone resolution
 - **[Action triggers](#action-triggers)** to fire activities from within the card
 - **[Alert entity integration](#alert-entity-integration)** for automations and other HA activities outside of the card
@@ -73,33 +74,29 @@ Add the card to your Lovelace dashboard:
 type: custom:nws-alert-card
 nws_zone: AKZ844  # Your NWS zone (REQUIRED if not using lat/lon)
 email: your-email@example.com  # REQUIRED for NWS API compliance
-title: NWS Weather Alert  # Optional, default: "NWS Weather Alert"
-update_interval: 300  # Optional, seconds between updates, default: 300 (5 minutes)
-show_severity_markers: true  # Optional, show markers for severe alerts, default: true
-show_expanded: false  # Optional, show descriptions expanded by default, default: false
 ```
 
 ### Configuration Options
 
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
-| `alert_entity` | string | No | - | Entity ID of input_text helper for alert data (e.g., `input_text.nws_alert_types`) |
-| `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
 | `email` | string | Yes | - | Your email for NWS API User-Agent header |
-| `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
 | `latitude` | number or string | Conditional | - | Latitude coordinate (number) or entity ID (string). Required with `longitude` if `nws_zone` not specified. |
 | `longitude` | number or string | Conditional | - | Longitude coordinate (number) or entity ID (string). Required with `latitude` if `nws_zone` not specified. |
+| `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. |
+
+| `alert_entity` | string | No | - | Entity ID of input_text helper for alert data (e.g., `input_text.nws_alert_types`) |
+| `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
+| `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
 | `minor_action` | string | No | - | Entity ID of script/automation for Minor severity |
 | `mobile_latitude` | number or string | No | - | Mobile override for latitude. Must be used with `mobile_longitude`. |
 | `mobile_longitude` | number or string | No | - | Mobile override for longitude. Must be used with `mobile_latitude`. |
 | `moderate_action` | string | No | - | Entity ID of script/automation for Moderate severity |
-| `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. |
 | `severe_action` | string | No | - | Entity ID of script/automation for Severe severity |
 | `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default |
 | `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
 | `title` | string | No | `NWS Weather Alert` | Card title |
 | `update_interval` | number | No | `300` | Seconds between alert checks |
-
 
 ### Action Triggers
 

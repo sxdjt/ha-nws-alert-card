@@ -1,4 +1,4 @@
-/* Last modified: 23-Jan-2026 10:30 */
+/* Last modified: 24-Jan-2026 14:22 */
 
 // NWS Alert Priority Order (highest priority first)
 // Source: https://www.weather.gov/help-map/
@@ -115,6 +115,292 @@ const NWS_ALERT_PRIORITY = [
   'Child Abduction Emergency',
   'Blue Alert'
 ];
+
+// Visual Editor for NWS Alert Card
+// Uses ha-textfield for text inputs, ha-switch for toggles, ha-selector for entity pickers
+class NWSAlertCardEditor extends HTMLElement {
+  constructor() {
+    super();
+    this.attachShadow({ mode: 'open' });
+    this._config = {};
+    this._hass = null;
+    this._rendered = false;
+  }
+
+  setConfig(config) {
+    this._config = { ...config };
+    // Only render once initially, not on every config update from HA
+    // This prevents destroying DOM elements and losing focus
+    if (!this._rendered) {
+      this.render();
+      this._rendered = true;
+    }
+  }
+
+  set hass(hass) {
+    this._hass = hass;
+    // Update all entity pickers with hass reference
+    const selectors = this.shadowRoot?.querySelectorAll('ha-selector');
+    if (selectors) {
+      selectors.forEach(selector => {
+        selector.hass = hass;
+      });
+    }
+  }
+
+  _fireConfigChanged() {
+    const event = new CustomEvent('config-changed', {
+      bubbles: true,
+      composed: true,
+      detail: { config: this._config }
+    });
+    this.dispatchEvent(event);
+  }
+
+  _valueChanged(field, value) {
+    if (value === '' || value === undefined || value === null) {
+      const newConfig = { ...this._config };
+      delete newConfig[field];
+      this._config = newConfig;
+    } else {
+      this._config = { ...this._config, [field]: value };
+    }
+    this._fireConfigChanged();
+  }
+
+  _createTextfield(field, label, value, helperText, type = 'text') {
+    const container = document.createElement('div');
+    container.className = 'field';
+
+    const textfield = document.createElement('ha-textfield');
+    textfield.label = label;
+    textfield.value = value ?? '';
+    if (type === 'number') {
+      textfield.type = 'number';
+    }
+    if (helperText) {
+      textfield.helperPersistent = true;
+      textfield.helper = helperText;
+    }
+    textfield.addEventListener('input', (e) => {
+      const newValue = type === 'number' ?
+        (e.target.value === '' ? undefined : Number(e.target.value)) :
+        e.target.value;
+      this._valueChanged(field, newValue);
+    });
+
+    container.appendChild(textfield);
+    return container;
+  }
+
+  _createSwitch(field, label, checked, helperText) {
+    const container = document.createElement('div');
+    container.className = 'toggle-row';
+
+    const labelEl = document.createElement('label');
+    labelEl.textContent = label;
+
+    const toggle = document.createElement('ha-switch');
+    toggle.checked = checked || false;
+    toggle.addEventListener('change', (e) => {
+      this._valueChanged(field, e.target.checked);
+    });
+
+    container.appendChild(labelEl);
+    container.appendChild(toggle);
+
+    if (helperText) {
+      const helper = document.createElement('div');
+      helper.className = 'toggle-helper';
+      helper.textContent = helperText;
+      container.appendChild(helper);
+    }
+
+    return container;
+  }
+
+  _createEntityPicker(field, label, value, domainFilter) {
+    const container = document.createElement('div');
+    container.className = 'field';
+
+    const selector = document.createElement('ha-selector');
+    selector.hass = this._hass;
+
+    // Configure selector based on domain filter
+    if (domainFilter) {
+      if (Array.isArray(domainFilter)) {
+        selector.selector = { entity: { domain: domainFilter } };
+      } else {
+        selector.selector = { entity: { domain: domainFilter } };
+      }
+    } else {
+      selector.selector = { entity: {} };
+    }
+
+    selector.value = value || '';
+    selector.label = label;
+    selector.addEventListener('value-changed', (e) => {
+      this._valueChanged(field, e.detail.value);
+    });
+
+    container.appendChild(selector);
+    return container;
+  }
+
+  _createExpansionPanel(header, content) {
+    const panel = document.createElement('ha-expansion-panel');
+    panel.header = header;
+    panel.outlined = true;
+    panel.appendChild(content);
+    return panel;
+  }
+
+  render() {
+    if (!this.shadowRoot) return;
+
+    const style = document.createElement('style');
+    style.textContent = `
+      :host {
+        display: block;
+        padding: 16px;
+      }
+      .field {
+        display: block;
+        margin-bottom: 16px;
+      }
+      .field ha-textfield,
+      .field ha-selector {
+        display: block;
+        width: 100%;
+      }
+      ha-expansion-panel {
+        display: block;
+        margin-bottom: 8px;
+      }
+      .panel-content {
+        padding: 12px;
+      }
+      .section-note {
+        font-size: 12px;
+        color: var(--secondary-text-color);
+        margin-bottom: 12px;
+        font-style: italic;
+      }
+      .toggle-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        flex-wrap: wrap;
+      }
+      .toggle-row label {
+        font-size: 14px;
+        color: var(--primary-text-color);
+      }
+      .toggle-helper {
+        width: 100%;
+        font-size: 12px;
+        color: var(--secondary-text-color);
+        margin-top: 4px;
+      }
+      h3 {
+        margin: 0 0 12px 0;
+        font-size: 16px;
+        font-weight: 500;
+      }
+    `;
+
+    const root = document.createElement('div');
+
+    // Section 1: Basic Settings (always visible)
+    const basicSection = document.createElement('div');
+    basicSection.innerHTML = '<h3>Basic Settings</h3>';
+
+    basicSection.appendChild(this._createTextfield('title', 'Card Title', this._config.title, 'Display title for the card'));
+    basicSection.appendChild(this._createTextfield('email', 'Email Address', this._config.email, 'Required for NWS API (User-Agent header)'));
+
+    root.appendChild(basicSection);
+
+    // Section 2: Display Options
+    const displayContent = document.createElement('div');
+    displayContent.className = 'panel-content';
+
+    displayContent.appendChild(this._createTextfield('update_interval', 'Update Interval', this._config.update_interval, 'Refresh interval in seconds (default: 300)', 'number'));
+    displayContent.appendChild(this._createSwitch('show_severity_markers', 'Show Severity Markers', this._config.show_severity_markers !== false, 'Display danger markers for Extreme/Severe alerts'));
+    displayContent.appendChild(this._createSwitch('show_expanded', 'Expand Alerts by Default', this._config.show_expanded, 'Show full alert descriptions by default'));
+
+    root.appendChild(this._createExpansionPanel('Display Options', displayContent));
+
+    // Section 3: Location Configuration
+    const locationContent = document.createElement('div');
+    locationContent.className = 'panel-content';
+
+    const locationNote = document.createElement('div');
+    locationNote.className = 'section-note';
+    locationNote.textContent = 'Enter numeric coordinates OR a device_tracker entity ID with latitude/longitude attributes';
+    locationContent.appendChild(locationNote);
+
+    locationContent.appendChild(this._createTextfield('latitude', 'Latitude', this._config.latitude, 'Number (e.g., 47.6062) or entity ID (e.g., device_tracker.phone)'));
+    locationContent.appendChild(this._createTextfield('longitude', 'Longitude', this._config.longitude, 'Number (e.g., -122.3321) or entity ID'));
+
+    const mobileNote = document.createElement('div');
+    mobileNote.className = 'section-note';
+    mobileNote.style.marginTop = '16px';
+    mobileNote.textContent = 'Mobile device override (optional) - uses these coordinates when viewed on mobile';
+    locationContent.appendChild(mobileNote);
+
+    locationContent.appendChild(this._createTextfield('mobile_latitude', 'Mobile Latitude', this._config.mobile_latitude, 'Typically a device_tracker entity for mobile location'));
+    locationContent.appendChild(this._createTextfield('mobile_longitude', 'Mobile Longitude', this._config.mobile_longitude, 'Must be paired with mobile_latitude'));
+
+    const zoneNote = document.createElement('div');
+    zoneNote.className = 'section-note';
+    zoneNote.style.marginTop = '16px';
+    zoneNote.textContent = 'Fallback zone code (optional) - used if coordinate lookup fails';
+    locationContent.appendChild(zoneNote);
+
+    locationContent.appendChild(this._createTextfield('nws_zone', 'NWS Zone Code', this._config.nws_zone, 'Format: SSZNNN (e.g., WAZ558, COZ097)'));
+
+    root.appendChild(this._createExpansionPanel('Location', locationContent));
+
+    // Section 4: Alert Entity Integration
+    const entityContent = document.createElement('div');
+    entityContent.className = 'panel-content';
+
+    const entityNote = document.createElement('div');
+    entityNote.className = 'section-note';
+    entityNote.textContent = 'Store current alerts in an input_text entity for use in automations and conditional cards';
+    entityContent.appendChild(entityNote);
+
+    entityContent.appendChild(this._createEntityPicker('alert_entity', 'Alert Entity', this._config.alert_entity, 'input_text'));
+
+    root.appendChild(this._createExpansionPanel('Alert Entity Integration', entityContent));
+
+    // Section 5: Action Triggers
+    const actionContent = document.createElement('div');
+    actionContent.className = 'panel-content';
+
+    const actionNote = document.createElement('div');
+    actionNote.className = 'section-note';
+    actionNote.textContent = 'Trigger scripts or automations when alerts of specific severity levels appear';
+    actionContent.appendChild(actionNote);
+
+    actionContent.appendChild(this._createEntityPicker('minor_action', 'Minor Severity Action', this._config.minor_action, ['script', 'automation']));
+    actionContent.appendChild(this._createEntityPicker('moderate_action', 'Moderate Severity Action', this._config.moderate_action, ['script', 'automation']));
+    actionContent.appendChild(this._createEntityPicker('severe_action', 'Severe Severity Action', this._config.severe_action, ['script', 'automation']));
+    actionContent.appendChild(this._createEntityPicker('extreme_action', 'Extreme Severity Action', this._config.extreme_action, ['script', 'automation']));
+
+    actionContent.appendChild(this._createTextfield('alert_trigger_cooldown', 'Cooldown Period', this._config.alert_trigger_cooldown, 'Minutes between action triggers (0 = no cooldown, default: 60)', 'number'));
+
+    root.appendChild(this._createExpansionPanel('Action Triggers', actionContent));
+
+    // Clear and render
+    this.shadowRoot.innerHTML = '';
+    this.shadowRoot.appendChild(style);
+    this.shadowRoot.appendChild(root);
+  }
+}
+
+customElements.define('nws-alert-card-editor', NWSAlertCardEditor);
 
 class NWSAlertCard extends HTMLElement {
   constructor() {
@@ -1141,8 +1427,7 @@ class NWSAlertCard extends HTMLElement {
   }
 
   static getConfigElement() {
-    // Could implement visual config editor here
-    return document.createElement('div');
+    return document.createElement('nws-alert-card-editor');
   }
 
   static getStubConfig() {
