@@ -17,8 +17,8 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 ## Features
 
 - Real-time NWS weather alerts for your specified zone
-- **NEW** Dynamic location support for mobile devices with automatic zone resolution
-- **NEW** Separate desktop and mobile location configurations
+- **Dynamic location support** for mobile devices with automatic zone resolution
+- Separate desktop and mobile location configurations
 - Severity-based color coding (Extreme, Severe, Moderate, Minor, Unknown)
 - Expandable alert descriptions with "Show more/less" toggle
 - 24-hour coordinate-to-zone caching to minimize API calls
@@ -32,7 +32,7 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 
 ## Finding Your NWS Zone
 
-To configure the card, you need your latitude and longitude or a NWS zone ID. There are two ways to find your zone ID:
+To configure the card, you need your latitude and longitude **or** a NWS zone ID. There are two ways to find your zone ID:
 
 ### Method 1: NWS Public Zone Page
 
@@ -80,16 +80,16 @@ show_expanded: false  # Optional, show descriptions expanded by default, default
 
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
-| `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. |
 | `email` | string | Yes | - | Your email for NWS API User-Agent header |
-| `latitude` | number or string | Conditional | - | Latitude coordinate (number) or entity ID (string). Required with `longitude` if `nws_zone` not specified. |
-| `longitude` | number or string | Conditional | - | Longitude coordinate (number) or entity ID (string). Required with `latitude` if `nws_zone` not specified. |
 | `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
 | `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
+| `latitude` | number or string | Conditional | - | Latitude coordinate (number) or entity ID (string). Required with `longitude` if `nws_zone` not specified. |
+| `longitude` | number or string | Conditional | - | Longitude coordinate (number) or entity ID (string). Required with `latitude` if `nws_zone` not specified. |
 | `minor_action` | string | No | - | Entity ID of script/automation for Minor severity |
 | `mobile_latitude` | number or string | No | - | Mobile override for latitude. Must be used with `mobile_longitude`. |
 | `mobile_longitude` | number or string | No | - | Mobile override for longitude. Must be used with `mobile_latitude`. |
 | `moderate_action` | string | No | - | Entity ID of script/automation for Moderate severity |
+| `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. |
 | `severe_action` | string | No | - | Entity ID of script/automation for Severe severity |
 | `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default |
 | `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
