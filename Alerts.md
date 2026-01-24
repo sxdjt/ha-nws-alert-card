@@ -154,6 +154,25 @@ card:
 
 ```
 
+## Example: Conditional Card (Specific Alert Type)
+
+Show a card only when a specific alert type is active:
+
+```yaml
+type: conditional
+conditions:
+  - condition: template
+    value_template: "{{ 'Winter Storm Warning' in states('input_text.nws_alert_types') }}"
+card:
+  type: markdown
+  content: |
+    ## Active Weather Alert
+    {% set raw = states('input_text.nws_alert_types') %}
+    {% for alert in raw.split(',') %}
+    **{{ alert.split(':')[0] }}** ({{ alert.split(':')[1] }})
+    {% endfor %}
+```
+
 #### Limitations
 
 - **Data only updates when the dashboard with the card is open**
