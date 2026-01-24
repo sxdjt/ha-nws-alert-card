@@ -2,11 +2,11 @@
 
 The card has the ability to collect NWS alert types so you can create automations and other Home Assistant-related actions based on them.  Alerts are things like "Winter Storm Warning" or "High Surf Advisory".  A full list can be found [on the NWS site](https://www.weather.gov/help-map/).
 
-This is done by creating a custom entity, e.g. 'nws_alert_types', configuring the card to read that entity, and then using a custom template sensor (`nws_alerts_sensor`) to parse and return the data.
+This is done by creating a custom entity, e.g. `nws_alert_types`, configuring the card to read that entity, and then using a custom template sensor (`nws_alerts_sensor`) to parse and return the data.
 
 Note that this is different from the `*_action` configuration options.  Those actions can be used directly from the card whereas `nws_alerts_sensor` can be used anywhere in Home Assistant.
 
-## Setup - You must do this before the feature will work
+## Setup - _You must do this before the feature will work_
 
 **Step 1: Create an input_text helper**
 
@@ -58,7 +58,7 @@ template:
           {% endif %}
 ```
 
-#### Data Format
+## Data Format
 
 The input_text stores alerts as comma-separated `EventType:Severity` pairs, ordered by NWS priority:
 
@@ -66,9 +66,9 @@ The input_text stores alerts as comma-separated `EventType:Severity` pairs, orde
 Winter Storm Warning:Moderate,Wind Advisory:Minor,Frost Advisory:Minor
 ```
 
-When no alerts are active, the value is empty.
+When no alerts are active, the value is empty; `""`.
 
-#### Example: Automation (Specific Alert Type)
+## Example: Automation (Specific Alert Type)
 
 Trigger an action when a Winter Storm Warning is active:
 
@@ -88,7 +88,7 @@ automation:
           entity_id: light.warning_light
 ```
 
-#### Example: Persistent Notification (Any Alert)
+## Example: Persistent Notification (Any Alert)
 
 Show a persistent notification when any NWS alert is active:
 
@@ -118,7 +118,7 @@ actions:
       notification_id: nws_alert_active
 ```
 
-#### Example: Clear Notification When Alerts Expire
+## Example: Clear Notification When Alerts Expire (Recommended)
 
 Dismiss the notification when all alerts have cleared:
 
@@ -134,7 +134,7 @@ actions:
       notification_id: nws_alert_active
 ```
 
-#### Example: Conditional Card
+## Example: Conditional Card
 
 Show a card only when alerts are active:
 
