@@ -17,12 +17,14 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 ## Features
 
 - Real-time NWS weather alerts for your specified zone
-- **Dynamic location support** for mobile devices with automatic zone resolution
+- **[Dynamic location support](#dynamic-location-support)** for mobile devices with automatic zone resolution
+- **[Action triggers](#action-triggers)** to fire activities from within the card
+- **[Alert entity integration](#alert-entity-integration)** for automations and other HA activities outside of the card
 - Separate desktop and mobile location configurations
 - Severity-based color coding (Extreme, Severe, Moderate, Minor, Unknown)
 - Expandable alert descriptions with "Show more/less" toggle
 - 24-hour coordinate-to-zone caching to minimize API calls
-- **Alert entity integration** for automations and conditional cards (stores alert types sorted by NWS priority)
+
 
 ## Installation
 
