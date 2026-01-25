@@ -86,8 +86,11 @@ email: your-email@example.com  # REQUIRED for NWS API compliance
 | `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. |
 
 | `alert_entity` | string | No | - | Entity ID of input_text helper for alert data (e.g., `input_text.nws_alert_types`) |
+| `alert_title_font_size` | number | No | `16` | Alert event name font size in pixels (8-48) |
 | `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
+| `description_font_size` | number | No | `14` | Alert description font size in pixels (8-48) |
 | `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
+| `meta_font_size` | number | No | `14` | Alert metadata (time range, severity/urgency) font size in pixels (8-48) |
 | `minor_action` | string | No | - | Entity ID of script/automation for Minor severity |
 | `mobile_latitude` | number or string | No | - | Mobile override for latitude. Must be used with `mobile_longitude`. |
 | `mobile_longitude` | number or string | No | - | Mobile override for longitude. Must be used with `mobile_latitude`. |
@@ -95,6 +98,7 @@ email: your-email@example.com  # REQUIRED for NWS API compliance
 | `severe_action` | string | No | - | Entity ID of script/automation for Severe severity |
 | `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default |
 | `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
+| `title_font_size` | number | No | `20` | Card title font size in pixels (8-48) |
 | `title` | string | No | `NWS Weather Alert` | Card title |
 | `update_interval` | number | No | `300` | Seconds between alert checks |
 

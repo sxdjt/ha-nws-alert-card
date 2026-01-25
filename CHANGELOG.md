@@ -4,6 +4,17 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2.5.0] - 2026-01-24
+
+### Added
+- Customizable font sizes for card elements (closes #6)
+  - `title_font_size` - Card title font size in pixels (default: 20)
+  - `alert_title_font_size` - Alert event name font size in pixels (default: 16)
+  - `meta_font_size` - Alert metadata (time range, severity/urgency) font size in pixels (default: 14)
+  - `description_font_size` - Alert description font size in pixels (default: 14)
+  - All font sizes accept values 8-48 pixels
+  - Visual editor includes new "Font Sizes" section
+
 ## [2.4.0] - 2026-01-24
 
 ### Added
@@ -131,7 +142,8 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## Links
 
-[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.0...HEAD
+[2.5.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.3.1...v2.4.0
 [2.3.1]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.3.0...v2.3.1
 [2.3.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.2.0...v2.3.0

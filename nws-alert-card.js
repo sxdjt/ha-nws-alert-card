@@ -1,4 +1,4 @@
-/* Last modified: 24-Jan-2026 14:22 */
+/* Last modified: 24-Jan-2026 21:00 */
 
 // NWS Alert Priority Order (highest priority first)
 // Source: https://www.weather.gov/help-map/
@@ -331,6 +331,22 @@ class NWSAlertCardEditor extends HTMLElement {
 
     root.appendChild(this._createExpansionPanel('Display Options', displayContent));
 
+    // Section 2b: Font Sizes
+    const fontContent = document.createElement('div');
+    fontContent.className = 'panel-content';
+
+    const fontNote = document.createElement('div');
+    fontNote.className = 'section-note';
+    fontNote.textContent = 'Customize font sizes in pixels (8-48). Leave empty for defaults.';
+    fontContent.appendChild(fontNote);
+
+    fontContent.appendChild(this._createTextfield('title_font_size', 'Card Title Font Size', this._config.title_font_size, 'Default: 20px', 'number'));
+    fontContent.appendChild(this._createTextfield('alert_title_font_size', 'Alert Title Font Size', this._config.alert_title_font_size, 'Default: 16px', 'number'));
+    fontContent.appendChild(this._createTextfield('meta_font_size', 'Metadata Font Size', this._config.meta_font_size, 'Time range and severity/urgency info. Default: 14px', 'number'));
+    fontContent.appendChild(this._createTextfield('description_font_size', 'Description Font Size', this._config.description_font_size, 'Default: 14px', 'number'));
+
+    root.appendChild(this._createExpansionPanel('Font Sizes', fontContent));
+
     // Section 3: Location Configuration
     const locationContent = document.createElement('div');
     locationContent.className = 'panel-content';
@@ -471,24 +487,25 @@ class NWSAlertCard extends HTMLElement {
       }
       .alert-header h3 {
         margin: 0;
-        font-size: 16px;
+        font-size: var(--nws-alert-title-font-size, 16px);
         line-height: 1.4;
       }
       .alert-meta {
         display: flex;
         gap: 12px;
         margin: 4px 0;
-        font-size: 0.9em;
+        font-size: var(--nws-meta-font-size, 14px);
         color: var(--secondary-text-color);
       }
       .times {
-        font-size: 0.85em;
+        font-size: var(--nws-meta-font-size, 14px);
         color: var(--secondary-text-color);
         white-space: nowrap;
       }
       .description {
         margin-top: 8px;
         color: var(--primary-text-color);
+        font-size: var(--nws-description-font-size, 14px);
         line-height: 1.5;
         white-space: pre-line;
       }
@@ -545,7 +562,7 @@ class NWSAlertCard extends HTMLElement {
       }
       .card-title {
         margin: 0 0 12px 0;
-        font-size: 20px;
+        font-size: var(--nws-title-font-size, 20px);
       }
       .zone-subtitle {
         font-size: 0.85em;
@@ -638,6 +655,23 @@ class NWSAlertCard extends HTMLElement {
         console.warn(`NWS Alert Card: 'alert_entity' must be an input_text entity ID (e.g., input_text.nws_alert_types). Got: ${entityId}`);
         delete this._config.alert_entity;
       }
+    }
+
+    // Validate font size options (must be numbers between 8 and 48)
+    const fontSizeFields = ['title_font_size', 'alert_title_font_size', 'meta_font_size', 'description_font_size'];
+    fontSizeFields.forEach(field => {
+      if (this._config[field] !== undefined) {
+        const value = this._config[field];
+        if (typeof value !== 'number' || value < 8 || value > 48) {
+          console.warn(`NWS Alert Card: '${field}' must be a number between 8 and 48. Got: ${value}. Using default.`);
+          delete this._config[field];
+        }
+      }
+    });
+
+    // Apply font size styles if content element exists
+    if (this._content) {
+      this._applyFontSizeStyles();
     }
 
     this._clearAndSetInterval();
@@ -1420,6 +1454,33 @@ class NWSAlertCard extends HTMLElement {
     this._content.innerHTML = html;
   }
 
+  _applyFontSizeStyles() {
+    // Apply font size CSS custom properties to the card element
+    if (this._config.title_font_size) {
+      this._content.style.setProperty('--nws-title-font-size', `${this._config.title_font_size}px`);
+    } else {
+      this._content.style.removeProperty('--nws-title-font-size');
+    }
+
+    if (this._config.alert_title_font_size) {
+      this._content.style.setProperty('--nws-alert-title-font-size', `${this._config.alert_title_font_size}px`);
+    } else {
+      this._content.style.removeProperty('--nws-alert-title-font-size');
+    }
+
+    if (this._config.meta_font_size) {
+      this._content.style.setProperty('--nws-meta-font-size', `${this._config.meta_font_size}px`);
+    } else {
+      this._content.style.removeProperty('--nws-meta-font-size');
+    }
+
+    if (this._config.description_font_size) {
+      this._content.style.setProperty('--nws-description-font-size', `${this._config.description_font_size}px`);
+    } else {
+      this._content.style.removeProperty('--nws-description-font-size');
+    }
+  }
+
   getCardSize() {
     // Dynamic sizing based on alert count
     const alertCount = this._lastAlertIds.size;
@@ -1441,6 +1502,11 @@ class NWSAlertCard extends HTMLElement {
       update_interval: 300,
       show_severity_markers: true,
       show_expanded: false,
+      // Optional font size customization (pixels, 8-48)
+      title_font_size: 20,
+      alert_title_font_size: 16,
+      meta_font_size: 14,
+      description_font_size: 14,
       // Optional alert entity for automation integration
       alert_entity: 'input_text.nws_alert_types',
       // Optional action triggers
