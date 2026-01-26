@@ -4,6 +4,11 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2.5.2] - 2026-01-25
+
+### Fixed
+- Metadata (Severity/Urgency/Certainty) and time range now wrap properly on mobile displays (fixes #8, thanks @tmcb82)
+
 ## [2.5.1] - 2026-01-25
 
 ### Fixed
@@ -149,7 +154,8 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## Links
 
-[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.1...HEAD
+[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.2...HEAD
+[2.5.2]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.3.1...v2.4.0
