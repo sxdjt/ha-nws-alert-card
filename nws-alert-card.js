@@ -1,4 +1,4 @@
-/* Last modified: 25-Jan-2026 15:18 */
+/* Last modified: 25-Jan-2026 15:35 */
 
 // NWS Alert Priority Order (highest priority first)
 // Source: https://www.weather.gov/help-map/
@@ -492,7 +492,8 @@ class NWSAlertCard extends HTMLElement {
       }
       .alert-meta {
         display: flex;
-        gap: 12px;
+        flex-wrap: wrap;
+        gap: 8px 12px;
         margin: 4px 0;
         font-size: var(--nws-meta-font-size, 14px);
         color: var(--secondary-text-color);
@@ -500,7 +501,6 @@ class NWSAlertCard extends HTMLElement {
       .times {
         font-size: var(--nws-meta-font-size, 14px);
         color: var(--secondary-text-color);
-        white-space: nowrap;
       }
       .description {
         margin-top: 8px;
