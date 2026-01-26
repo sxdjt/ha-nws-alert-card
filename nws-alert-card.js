@@ -1,4 +1,4 @@
-/* Last modified: 24-Jan-2026 21:00 */
+/* Last modified: 25-Jan-2026 15:18 */
 
 // NWS Alert Priority Order (highest priority first)
 // Source: https://www.weather.gov/help-map/
@@ -1364,7 +1364,9 @@ class NWSAlertCard extends HTMLElement {
     if (!alerts || alerts.length === 0) {
       html += '<div class="no-alerts">No active alerts at this time</div>';
     } else {
-      alerts.forEach(alert => {
+      // Sort alerts by official NWS priority order
+      const sortedAlerts = this._sortAlertsByPriority(alerts);
+      sortedAlerts.forEach(alert => {
         const p = alert.properties;
         const alertId = alert.id;
         const severityClass = `severity-${p.severity || 'Unknown'}`;
