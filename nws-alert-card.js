@@ -1,4 +1,4 @@
-/* Last modified: 25-Jan-2026 15:35 */
+/* Last modified: 27-Jan-2026 08:53 */
 
 // NWS Alert Priority Order (highest priority first)
 // Source: https://www.weather.gov/help-map/
@@ -347,6 +347,23 @@ class NWSAlertCardEditor extends HTMLElement {
 
     root.appendChild(this._createExpansionPanel('Font Sizes', fontContent));
 
+    // Section 2c: Text Colors
+    const colorContent = document.createElement('div');
+    colorContent.className = 'panel-content';
+
+    const colorNote = document.createElement('div');
+    colorNote.className = 'section-note';
+    colorNote.textContent = 'Enter CSS colors (e.g., #ff0000, red, rgb(255,0,0)). Leave empty for defaults.';
+    colorContent.appendChild(colorNote);
+
+    colorContent.appendChild(this._createTextfield('title_color', 'Card Title Color', this._config.title_color, 'Default: inherit (theme primary text)'));
+    colorContent.appendChild(this._createTextfield('zone_color', 'Zone Subtitle Color', this._config.zone_color, 'Default: secondary text color'));
+    colorContent.appendChild(this._createTextfield('times_color', 'Time Range Color', this._config.times_color, 'Default: secondary text color'));
+    colorContent.appendChild(this._createTextfield('meta_color', 'Metadata Color', this._config.meta_color, 'Severity/urgency/certainty. Default: secondary text color'));
+    colorContent.appendChild(this._createTextfield('description_color', 'Description Color', this._config.description_color, 'Default: primary text color'));
+
+    root.appendChild(this._createExpansionPanel('Text Colors', colorContent));
+
     // Section 3: Location Configuration
     const locationContent = document.createElement('div');
     locationContent.className = 'panel-content';
@@ -496,15 +513,15 @@ class NWSAlertCard extends HTMLElement {
         gap: 8px 12px;
         margin: 4px 0;
         font-size: var(--nws-meta-font-size, 14px);
-        color: var(--secondary-text-color);
+        color: var(--nws-meta-color, var(--secondary-text-color));
       }
       .times {
         font-size: var(--nws-meta-font-size, 14px);
-        color: var(--secondary-text-color);
+        color: var(--nws-times-color, var(--secondary-text-color));
       }
       .description {
         margin-top: 8px;
-        color: var(--primary-text-color);
+        color: var(--nws-description-color, var(--primary-text-color));
         font-size: var(--nws-description-font-size, 14px);
         line-height: 1.5;
         white-space: pre-line;
@@ -563,10 +580,11 @@ class NWSAlertCard extends HTMLElement {
       .card-title {
         margin: 0 0 12px 0;
         font-size: var(--nws-title-font-size, 20px);
+        color: var(--nws-title-color, inherit);
       }
       .zone-subtitle {
         font-size: 0.85em;
-        color: var(--secondary-text-color);
+        color: var(--nws-zone-color, var(--secondary-text-color));
         margin: -8px 0 12px 0;
       }
     `;
@@ -669,9 +687,22 @@ class NWSAlertCard extends HTMLElement {
       }
     });
 
-    // Apply font size styles if content element exists
+    // Validate color options (must be non-empty strings)
+    const colorFields = ['title_color', 'zone_color', 'times_color', 'meta_color', 'description_color'];
+    colorFields.forEach(field => {
+      if (this._config[field] !== undefined) {
+        const value = this._config[field];
+        if (typeof value !== 'string' || value.trim() === '') {
+          console.warn(`NWS Alert Card: '${field}' must be a valid CSS color string. Got: ${value}. Using default.`);
+          delete this._config[field];
+        }
+      }
+    });
+
+    // Apply font size and color styles if content element exists
     if (this._content) {
       this._applyFontSizeStyles();
+      this._applyColorStyles();
     }
 
     this._clearAndSetInterval();
@@ -1483,6 +1514,24 @@ class NWSAlertCard extends HTMLElement {
     }
   }
 
+  _applyColorStyles() {
+    // Apply text color CSS custom properties to the card element
+    const colorMap = {
+      title_color: '--nws-title-color',
+      zone_color: '--nws-zone-color',
+      times_color: '--nws-times-color',
+      meta_color: '--nws-meta-color',
+      description_color: '--nws-description-color'
+    };
+    Object.entries(colorMap).forEach(([configKey, cssVar]) => {
+      if (this._config[configKey]) {
+        this._content.style.setProperty(cssVar, this._config[configKey]);
+      } else {
+        this._content.style.removeProperty(cssVar);
+      }
+    });
+  }
+
   getCardSize() {
     // Dynamic sizing based on alert count
     const alertCount = this._lastAlertIds.size;
@@ -1509,6 +1558,8 @@ class NWSAlertCard extends HTMLElement {
       alert_title_font_size: 16,
       meta_font_size: 14,
       description_font_size: 14,
+      // Optional text color customization (any valid CSS color)
+      // title_color, zone_color, times_color, meta_color, description_color
       // Optional alert entity for automation integration
       alert_entity: 'input_text.nws_alert_types',
       // Optional action triggers

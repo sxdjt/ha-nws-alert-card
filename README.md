@@ -17,7 +17,6 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 ## Features
 
 - Real-time NWS weather alerts for your specified zone
-- **Visual configuration editor** - configure the card through the Home Assistant UI
 - **[Dynamic location support](#dynamic-location-support)** for mobile devices with automatic zone resolution
 - **[Action triggers](#action-triggers)** to fire activities from within the card
 - **[Alert entity integration](#alert-entity-integration)** for automations and other HA activities outside of the card
@@ -25,7 +24,6 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 - Severity-based color coding (Extreme, Severe, Moderate, Minor, Unknown)
 - Expandable alert descriptions with "Show more/less" toggle
 - 24-hour coordinate-to-zone caching to minimize API calls
-
 
 ## Installation
 
@@ -88,8 +86,10 @@ email: your-email@example.com  # REQUIRED for NWS API compliance
 | `alert_entity` | string | No | - | Entity ID of input_text helper for alert data (e.g., `input_text.nws_alert_types`) |
 | `alert_title_font_size` | number | No | `16` | Alert event name font size in pixels (8-48) |
 | `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
+| `description_color` | string | No | primary text | CSS color for alert description text (e.g., `#333`, `gray`) |
 | `description_font_size` | number | No | `14` | Alert description font size in pixels (8-48) |
 | `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
+| `meta_color` | string | No | secondary text | CSS color for severity/urgency/certainty text |
 | `meta_font_size` | number | No | `14` | Alert metadata (time range, severity/urgency) font size in pixels (8-48) |
 | `minor_action` | string | No | - | Entity ID of script/automation for Minor severity |
 | `mobile_latitude` | number or string | No | - | Mobile override for latitude. Must be used with `mobile_longitude`. |
@@ -98,9 +98,12 @@ email: your-email@example.com  # REQUIRED for NWS API compliance
 | `severe_action` | string | No | - | Entity ID of script/automation for Severe severity |
 | `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default |
 | `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
+| `times_color` | string | No | secondary text | CSS color for alert time range text |
+| `title_color` | string | No | inherit | CSS color for the card title |
 | `title_font_size` | number | No | `20` | Card title font size in pixels (8-48) |
 | `title` | string | No | `NWS Weather Alert` | Card title |
 | `update_interval` | number | No | `300` | Seconds between alert checks |
+| `zone_color` | string | No | secondary text | CSS color for the zone subtitle |
 
 ### Action Triggers
 

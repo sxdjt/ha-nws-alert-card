@@ -4,6 +4,19 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2.6.0] - 2026-01-27
+
+### Added
+- Customizable text colors for card elements (closes #9)
+  - `title_color` - Card title color (default: inherit)
+  - `zone_color` - Zone subtitle color (default: secondary text)
+  - `times_color` - Alert time range color (default: secondary text)
+  - `meta_color` - Severity/urgency/certainty color (default: secondary text)
+  - `description_color` - Alert description color (default: primary text)
+  - Accepts any valid CSS color value (hex, named, rgb, etc.)
+  - Visual editor includes new "Text Colors" section
+  - Alert header (event name) remains severity-colored and is not affected
+
 ## [2.5.2] - 2026-01-25
 
 ### Fixed
@@ -154,7 +167,8 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## Links
 
-[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.2...HEAD
+[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.2...v2.6.0
 [2.5.2]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.0...v2.5.1
 [2.5.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.4.0...v2.5.0
