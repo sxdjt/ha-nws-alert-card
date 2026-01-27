@@ -82,14 +82,13 @@ email: your-email@example.com  # REQUIRED for NWS API compliance
 | `latitude` | number or string | Conditional | - | Latitude coordinate (number) or entity ID (string). Required with `longitude` if `nws_zone` not specified. |
 | `longitude` | number or string | Conditional | - | Longitude coordinate (number) or entity ID (string). Required with `latitude` if `nws_zone` not specified. |
 | `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. |
-
 | `alert_entity` | string | No | - | Entity ID of input_text helper for alert data (e.g., `input_text.nws_alert_types`) |
 | `alert_title_font_size` | number | No | `16` | Alert event name font size in pixels (8-48) |
 | `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
-| `description_color` | string | No | primary text | CSS color for alert description text (e.g., `#333`, `gray`) |
+| `description_color` | string | No | `primary text` | CSS color for alert description text (e.g., `#333`, `gray`) |
 | `description_font_size` | number | No | `14` | Alert description font size in pixels (8-48) |
 | `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
-| `meta_color` | string | No | secondary text | CSS color for severity/urgency/certainty text |
+| `meta_color` | string | No | `secondary text` | CSS color for severity/urgency/certainty text |
 | `meta_font_size` | number | No | `14` | Alert metadata (time range, severity/urgency) font size in pixels (8-48) |
 | `minor_action` | string | No | - | Entity ID of script/automation for Minor severity |
 | `mobile_latitude` | number or string | No | - | Mobile override for latitude. Must be used with `mobile_longitude`. |
@@ -98,12 +97,12 @@ email: your-email@example.com  # REQUIRED for NWS API compliance
 | `severe_action` | string | No | - | Entity ID of script/automation for Severe severity |
 | `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default |
 | `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
-| `times_color` | string | No | secondary text | CSS color for alert time range text |
-| `title_color` | string | No | inherit | CSS color for the card title |
+| `times_color` | string | No | `secondary text` | CSS color for alert time range text |
+| `title_color` | string | No | `inherit` | CSS color for the card title |
 | `title_font_size` | number | No | `20` | Card title font size in pixels (8-48) |
 | `title` | string | No | `NWS Weather Alert` | Card title |
 | `update_interval` | number | No | `300` | Seconds between alert checks |
-| `zone_color` | string | No | secondary text | CSS color for the zone subtitle |
+| `zone_color` | string | No | `secondary text` | CSS color for the zone subtitle |
 
 ### Action Triggers
 
