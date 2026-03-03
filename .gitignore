@@ -5,9 +5,6 @@
 CLAUDE.md
 claude.md
 
-# Node modules (if any)
-node_modules/
-
 # Editor files
 .vscode/
 .idea/

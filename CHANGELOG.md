@@ -4,6 +4,18 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2.7.0] - 2026-03-03
+
+### Changed
+- Internal code reorganization for improved readability and maintainability
+  - Extracted named constants (`MAX_RETRIES`, `BASE_RETRY_DELAY`, `ZONE_CACHE_TTL`, etc.)
+  - Added explicit section headers and documentation comments throughout
+  - Extracted helper functions (`sanitizeEmail`, `formatTime`, `escapeHtml`, `normalizeDescription`,
+    `createStyleElement`, `applyFontSizeStyles`, `applyColorStyles`, `setsEqual`)
+  - Grouped related logic into clearly labeled sections
+- Removed build system dependency - card remains a single deployable file with no build step required
+- No functional changes - identical behavior to v2.6.0
+
 ## [2.6.0] - 2026-01-27
 
 ### Added
@@ -167,7 +179,8 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## Links
 
-[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.7.0...HEAD
+[2.7.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.6.0...v2.7.0
 [2.6.0]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.2...v2.6.0
 [2.5.2]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.1...v2.5.2
 [2.5.1]: https://github.com/sxdjt/ha-nws-alert-card/compare/v2.5.0...v2.5.1
