@@ -4,6 +4,12 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2.7.1-beta.1] - 2026-03-09
+
+### Fixed
+- Eliminated repeated "Using legacy nws_zone configuration" console log spam on desktop
+- `handleHassUpdate` now skips zone re-resolution when the active coordinate path does not use entity-based coordinates (e.g., desktop with only `mobile_latitude`/`mobile_longitude` configured as entity IDs falls back to static `nws_zone` without re-querying on every hass state change)
+
 ## [2.7.0] - 2026-03-03
 
 ### Changed

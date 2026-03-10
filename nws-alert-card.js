@@ -1,5 +1,5 @@
 /**
- * NWS Alert Card - v2.7.0
+ * NWS Alert Card - v2.7.1-beta.1
  * A Home Assistant custom Lovelace card for US National Weather Service alerts.
  * https://github.com/sxdjt/ha-nws-alert-card
  */
@@ -959,14 +959,14 @@ class ZoneResolver {
    * debounce zone re-resolution. Calls onZoneChange callback when zone changes.
    */
   handleHassUpdate(config, hass, onZoneChange) {
-    // Check if any coordinate config is entity-based (string)
-    const hasEntityCoords =
-      (typeof config.latitude === 'string') ||
-      (typeof config.longitude === 'string') ||
-      (typeof config.mobile_latitude === 'string') ||
-      (typeof config.mobile_longitude === 'string');
+    // Only re-resolve if the currently active coordinate path uses an entity.
+    // On desktop, mobile_latitude/longitude entities are not active, so skip.
+    const isMobile = this.isMobileDevice();
+    const hasActiveEntityCoords = isMobile
+      ? (typeof config.mobile_latitude === 'string') || (typeof config.mobile_longitude === 'string')
+      : (typeof config.latitude === 'string') || (typeof config.longitude === 'string');
 
-    if (!hasEntityCoords) return;
+    if (!hasActiveEntityCoords) return;
 
     // Debounce zone re-resolution
     if (!this._zoneResolveTimeout) {
