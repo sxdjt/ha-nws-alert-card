@@ -4,6 +4,11 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2.7.1-beta.2] - 2026-03-09
+
+### Added
+- Console info banner on load matching standard card color scheme
+
 ## [2.7.1-beta.1] - 2026-03-09
 
 ### Fixed
