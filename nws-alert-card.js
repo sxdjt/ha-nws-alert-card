@@ -1,5 +1,5 @@
 /**
- * NWS Alert Card - v2.7.1
+ * NWS Alert Card - v2.7.2
  * A Home Assistant custom Lovelace card for US National Weather Service alerts.
  * https://github.com/sxdjt/ha-nws-alert-card
  */
@@ -1702,30 +1702,13 @@ class NWSAlertCard extends HTMLElement {
   }
 
   static getStubConfig() {
+    // Minimal config shown when adding a new card via the UI.
+    // Only include required fields - avoid placeholder coordinates that
+    // would trigger real API calls and potentially fire action scripts.
     return {
-      latitude: 47,
-      longitude: -122,
-      mobile_latitude: 'device_tracker.my_phone',
-      mobile_longitude: 'device_tracker.my_phone',
+      nws_zone: 'KSZ007',
       email: 'homeassistant@example.com',
-      title: 'NWS Weather Alert',
-      update_interval: 300,
-      show_severity_markers: true,
-      show_expanded: false,
-      // Optional font size customization (pixels, 8-48)
-      title_font_size: 20,
-      alert_title_font_size: 16,
-      meta_font_size: 14,
-      description_font_size: 14,
-      // Optional text color customization (any valid CSS color)
-      // title_color, zone_color, times_color, meta_color, description_color
-      // Optional alert entity for automation integration
-      alert_entity: 'input_text.nws_alert_types',
-      // Optional action triggers
-      moderate_action: 'script.weather_alert_moderate',
-      severe_action: 'script.weather_alert_severe',
-      extreme_action: 'script.weather_alert_extreme',
-      alert_trigger_cooldown: 60
+      title: 'NWS Weather Alert'
     };
   }
 }
@@ -1737,7 +1720,7 @@ class NWSAlertCard extends HTMLElement {
 customElements.define('nws-alert-card', NWSAlertCard);
 
 console.info(
-  '%c NWS-ALERT-CARD %c v2.7.1 ',
+  '%c NWS-ALERT-CARD %c v2.7.2 ',
   'color: black; background: #F2720C; font-weight: 600;',
   'color: black; background: #00a5c9; font-weight: 600;'
 );

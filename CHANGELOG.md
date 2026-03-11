@@ -4,6 +4,11 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2.7.2] - 2026-03-10
+
+### Fixed
+- `getStubConfig()` no longer includes placeholder `latitude`/`longitude` values (47, -122) that caused HA's card picker preview to resolve real NWS zones, fetch live alerts, and fire action scripts unintentionally. The stub now uses the simpler `nws_zone` field instead.
+
 ## [2.7.1] - 2026-03-09
 
 ### Added
