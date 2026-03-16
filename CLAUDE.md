@@ -147,6 +147,20 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
 - Uses CSS custom properties (CSS variables) for theme integration:
   - `--primary-color`, `--secondary-text-color`, `--divider-color`
   - `--error-color`, `--warning-color`
+- Font sizes use CSS custom properties with fallback defaults:
+  - `--nws-title-font-size` (default: 20px) - Card title
+  - `--nws-alert-title-font-size` (default: 16px) - Alert event name
+  - `--nws-meta-font-size` (default: 14px) - Time range and severity/urgency/certainty
+  - `--nws-description-font-size` (default: 14px) - Alert description
+- Font size application: `_applyFontSizeStyles()` sets CSS variables on `_content` element
+- Text colors use CSS custom properties with fallback defaults:
+  - `--nws-title-color` (default: inherit) - Card title
+  - `--nws-zone-color` (default: --secondary-text-color) - Zone subtitle
+  - `--nws-times-color` (default: --secondary-text-color) - Time range
+  - `--nws-meta-color` (default: --secondary-text-color) - Severity/urgency/certainty
+  - `--nws-description-color` (default: --primary-text-color) - Alert description
+- Text color application: `_applyColorStyles()` sets CSS variables on `_content` element
+- Alert header (event name) is NOT customizable - it stays severity-colored
 
 **Adding New Configuration Options:**
 
@@ -253,6 +267,24 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
 - Verify unknown alert types sort to end of list
 - Test with multiple alerts of varying priorities
 
+**Font size testing:**
+
+- Default values (no font size options set)
+- Custom font sizes (e.g., `title_font_size: 24`)
+- Boundary values (8 and 48 pixels)
+- Invalid values (< 8, > 48, non-numbers) - verify console warnings and default fallback
+- Visual editor font size fields
+- Font size persistence across page reloads
+
+**Text color testing:**
+
+- Default values (no color options set) - verify inherited/theme defaults
+- Custom colors (hex: `#ff0000`, named: `red`, rgb: `rgb(255,0,0)`)
+- Invalid values (numbers, empty strings) - verify console warnings and default fallback
+- Visual editor text color fields
+- Verify alert header (event name) remains severity-colored (not affected by color options)
+- Color persistence across page reloads
+
 **Geolocation testing:**
 
 - Static coordinates (number values for lat/lon)
@@ -279,6 +311,8 @@ Alerts are color-coded by severity (nws-alert-card.js:45-48):
 - Logs coordinate validation errors: "Invalid latitude/longitude value"
 - Logs alert entity errors: "Alert entity 'X' not found", "Failed to update alert entity"
 - Logs truncation warning when alert data exceeds 255 characters
+- Logs font size validation errors: "'field' must be a number between 8 and 48"
+- Logs color validation errors: "'field' must be a valid CSS color string"
 
 ## HACS Integration
 
