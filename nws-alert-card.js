@@ -1,5 +1,5 @@
 /**
- * NWS Alert Card - v2.7.2
+ * NWS Alert Card - v2.7.3
  * A Home Assistant custom Lovelace card for US National Weather Service alerts.
  * https://github.com/sxdjt/ha-nws-alert-card
  */
@@ -226,9 +226,14 @@ function normalizeDescription(text) {
 function createStyleElement() {
   const style = document.createElement('style');
   style.textContent = `
+    :host {
+      display: block;
+      height: 100%;
+    }
     ha-card {
       padding: 16px;
       display: block;
+      height: 100%;
     }
     .alert-item {
       margin-bottom: 12px;
@@ -1697,6 +1702,16 @@ class NWSAlertCard extends HTMLElement {
     return alertCount === 0 ? 2 : Math.min(2 + alertCount, 8);
   }
 
+  // Sections view (grid layout) sizing - 12-column grid system
+  getGridOptions() {
+    return {
+      rows: 3,
+      columns: 12,
+      min_rows: 2,
+      min_columns: 6,
+    };
+  }
+
   static getConfigElement() {
     return document.createElement('nws-alert-card-editor');
   }
@@ -1720,7 +1735,7 @@ class NWSAlertCard extends HTMLElement {
 customElements.define('nws-alert-card', NWSAlertCard);
 
 console.info(
-  '%c NWS-ALERT-CARD %c v2.7.2 ',
+  '%c NWS-ALERT-CARD %c v2.7.3 ',
   'color: black; background: #F2720C; font-weight: 600;',
   'color: black; background: #00a5c9; font-weight: 600;'
 );
