@@ -4,6 +4,17 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2.7.4] - 2026-05-13
+
+### Fixed
+- Replace deprecated `ha-textfield` with `ha-selector` in visual editor for compatibility with HA 2026.5.1+
+- Add `getGridOptions()` and `height: 100%` for correct card sizing in HA sections view
+
+## [2.7.3] - 2026-03-11
+
+### Changed
+- Update GitHub Actions workflow to use checkout@v6 and action-gh-release@v2
+
 ## [2.7.2] - 2026-03-10
 
 ### Fixed

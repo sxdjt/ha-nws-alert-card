@@ -1,5 +1,5 @@
 /**
- * NWS Alert Card - v2.7.3
+ * NWS Alert Card - v2.7.4
  * A Home Assistant custom Lovelace card for US National Weather Service alerts.
  * https://github.com/sxdjt/ha-nws-alert-card
  */
@@ -1006,7 +1006,7 @@ class ZoneResolver {
 // Visual Editor
 // ---------------------------------------------------------------------------
 
-// Uses ha-textfield for text inputs, ha-switch for toggles, ha-selector for entity pickers
+// Uses ha-selector for text/number inputs, ha-switch for toggles, ha-selector for entity pickers
 
 class NWSAlertCardEditor extends HTMLElement {
   constructor() {
@@ -1062,24 +1062,24 @@ class NWSAlertCardEditor extends HTMLElement {
     const container = document.createElement('div');
     container.className = 'field';
 
-    const textfield = document.createElement('ha-textfield');
-    textfield.label = label;
-    textfield.value = value ?? '';
+    const selector = document.createElement('ha-selector');
+    selector.hass = this._hass;
+    selector.label = label;
     if (type === 'number') {
-      textfield.type = 'number';
+      selector.selector = { number: { mode: 'box', step: 1 } };
+    } else {
+      selector.selector = { text: {} };
     }
-    if (helperText) {
-      textfield.helperPersistent = true;
-      textfield.helper = helperText;
-    }
-    textfield.addEventListener('input', (e) => {
+    selector.value = value ?? '';
+    selector.addEventListener('value-changed', (e) => {
+      e.stopPropagation();
       const newValue = type === 'number' ?
-        (e.target.value === '' ? undefined : Number(e.target.value)) :
-        e.target.value;
+        (e.detail.value === '' ? undefined : Number(e.detail.value)) :
+        e.detail.value;
       this._valueChanged(field, newValue);
     });
 
-    container.appendChild(textfield);
+    container.appendChild(selector);
     return container;
   }
 
@@ -1158,7 +1158,6 @@ class NWSAlertCardEditor extends HTMLElement {
         display: block;
         margin-bottom: 16px;
       }
-      .field ha-textfield,
       .field ha-selector {
         display: block;
         width: 100%;
@@ -1735,7 +1734,7 @@ class NWSAlertCard extends HTMLElement {
 customElements.define('nws-alert-card', NWSAlertCard);
 
 console.info(
-  '%c NWS-ALERT-CARD %c v2.7.3 ',
+  '%c NWS-ALERT-CARD %c v2.7.4 ',
   'color: black; background: #F2720C; font-weight: 600;',
   'color: black; background: #00a5c9; font-weight: 600;'
 );
