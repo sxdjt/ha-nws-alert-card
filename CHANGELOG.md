@@ -4,6 +4,19 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2026.7.19] - 2026-07-19
+
+### Changed
+- Switched to CalVer versioning (`YYYY.M.D`).
+- Show the "Show more/Show less" toggle only for descriptions longer than 200 characters; short alerts now display in full with no toggle.
+- Pause alert polling while the browser tab is hidden and refresh once when it returns to the foreground, reducing needless calls to the NWS API.
+
+### Fixed
+- Cancel any pending fetch-retry timer on disconnect so a fetch can no longer fire on a detached card.
+- Validate alert link URLs to only allow `http(s)` schemes, preventing `javascript:` URIs in the "Read full alert" link.
+- Escape the card title in loading and error views (previously only escaped in the alert list).
+- Return quietly from the alert fetch when the zone is not yet resolved, avoiding a brief "No active zone" error flash on initial load.
+
 ## [2.7.4] - 2026-05-13
 
 ### Fixed

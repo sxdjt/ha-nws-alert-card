@@ -1,5 +1,5 @@
 /**
- * NWS Alert Card - v2.7.4
+ * NWS Alert Card - 2026.7.19
  * A Home Assistant custom Lovelace card for US National Weather Service alerts.
  * https://github.com/sxdjt/ha-nws-alert-card
  */
@@ -1006,7 +1006,10 @@ class ZoneResolver {
 // Visual Editor
 // ---------------------------------------------------------------------------
 
-// Uses ha-selector for text/number inputs, ha-switch for toggles, ha-selector for entity pickers
+// Editor inputs use ha-selector for text/number, ha-switch for toggles, and
+// ha-selector for entity pickers. NOTE: this card intentionally uses ha-selector
+// (not ha-textfield) for text/number inputs because ha-textfield broke in
+// HA 2026.5.1 (see v2.7.4). This overrides the monorepo default of ha-textfield.
 
 class NWSAlertCardEditor extends HTMLElement {
   constructor() {
@@ -1339,6 +1342,8 @@ class NWSAlertCard extends HTMLElement {
     this._collapsedAlerts = new Set();
     this._alertsCache = new Map();
     this._retryCount = 0;
+    this._retryTimeout = null;      // Pending retry timer (cleared on disconnect)
+    this._visibilityHandler = null; // document visibilitychange listener reference
 
     // Subsystem instances
     this._zoneResolver = new ZoneResolver();
@@ -1455,14 +1460,14 @@ class NWSAlertCard extends HTMLElement {
 
   async connectedCallback() {
     // Force initial render
-    this._renderContent(`<h2 class="card-title">${this._config.title || 'NWS Weather Alert'}</h2><div class="no-alerts">Loading...</div>`);
+    this._renderContent(`<h2 class="card-title">${escapeHtml(this._config.title || 'NWS Weather Alert')}</h2><div class="no-alerts">Loading...</div>`);
 
     // Resolve active zone
     this._zoneResolver.currentZone = await this._zoneResolver.getActiveZone(this._config, this._hass);
 
     if (!this._zoneResolver.currentZone) {
       this._renderContent(
-        `<h2 class="card-title">${this._config.title}</h2>` +
+        `<h2 class="card-title">${escapeHtml(this._config.title)}</h2>` +
         '<div class="error-message">Unable to determine NWS zone. Check configuration.</div>'
       );
       return;
@@ -1476,6 +1481,14 @@ class NWSAlertCard extends HTMLElement {
     if (this._interval) clearInterval(this._interval);
     this._interval = null;
 
+    if (this._retryTimeout) clearTimeout(this._retryTimeout);
+    this._retryTimeout = null;
+
+    if (this._visibilityHandler) {
+      document.removeEventListener('visibilitychange', this._visibilityHandler);
+      this._visibilityHandler = null;
+    }
+
     this._lastAlertIds.clear();
     this._expandedAlerts.clear();
     this._collapsedAlerts.clear();
@@ -1487,10 +1500,26 @@ class NWSAlertCard extends HTMLElement {
 
   _clearAndSetInterval() {
     if (this._interval) clearInterval(this._interval);
-    this._fetchAlerts();
 
+    // Only fetch immediately if the tab is visible; a hidden tab will
+    // fetch when it becomes visible again (see visibility handler below).
+    if (!document.hidden) this._fetchAlerts();
+
+    // Skip scheduled polls while the tab is hidden to avoid needless
+    // requests to the rate-limited public NWS API.
     const intervalMs = this._config.update_interval * 1000;
-    this._interval = setInterval(() => this._fetchAlerts(), intervalMs);
+    this._interval = setInterval(() => {
+      if (!document.hidden) this._fetchAlerts();
+    }, intervalMs);
+
+    // Refresh once when the tab returns to the foreground so a hidden
+    // card shows current data as soon as it is viewed again.
+    if (!this._visibilityHandler) {
+      this._visibilityHandler = () => {
+        if (!document.hidden) this._fetchAlerts();
+      };
+      document.addEventListener('visibilitychange', this._visibilityHandler);
+    }
   }
 
   async _fetchZoneNameAndRerender() {
@@ -1509,13 +1538,10 @@ class NWSAlertCard extends HTMLElement {
   async _fetchAlerts() {
     const zone = this._zoneResolver.currentZone;
 
-    if (!zone) {
-      this._renderContent(
-        `<h2 class="card-title">${this._config.title}</h2>` +
-        '<div class="error-message">No active zone configured.</div>'
-      );
-      return;
-    }
+    // Zone not resolved yet. connectedCallback owns the zone-resolution
+    // error UI, so return quietly here to avoid a spurious error flash
+    // when setConfig fires a fetch before the zone is ready.
+    if (!zone) return;
 
     const url = `https://api.weather.gov/alerts/active/zone/${zone}`;
 
@@ -1583,10 +1609,15 @@ class NWSAlertCard extends HTMLElement {
         const delay = BASE_RETRY_DELAY * Math.pow(2, this._retryCount - 1);
         console.log(`Retrying in ${delay/1000}s (attempt ${this._retryCount}/${MAX_RETRIES})`);
 
-        setTimeout(() => this._fetchAlerts(), delay);
+        // Track the timer so a disconnect mid-backoff can cancel it,
+        // preventing a fetch from firing on a detached component.
+        this._retryTimeout = setTimeout(() => {
+          this._retryTimeout = null;
+          this._fetchAlerts();
+        }, delay);
       } else {
         this._renderContent(
-          `<h2 class="card-title">${this._config.title}</h2>` +
+          `<h2 class="card-title">${escapeHtml(this._config.title)}</h2>` +
           '<div class="error-message">Unable to fetch weather alerts. Check zone configuration.</div>'
         );
       }
@@ -1627,6 +1658,33 @@ class NWSAlertCard extends HTMLElement {
         const desc = p.description || 'No description available';
         const normalizedDesc = normalizeDescription(desc);
 
+        // Only offer an expand/collapse toggle when the description is long
+        // enough to be worth hiding. Short alerts are always shown in full
+        // with no toggle (DESCRIPTION_THRESHOLD = character cutoff).
+        const needsToggle = normalizedDesc.length > DESCRIPTION_THRESHOLD;
+        const showDescription = !needsToggle || isExpanded;
+
+        // escapeHtml does not neutralize a javascript: scheme in an href,
+        // so only allow http(s) links (NWS returns https URIs).
+        const safeUri = /^https?:\/\//i.test(p.uri || '') ? p.uri : '';
+
+        const descriptionBlock = showDescription ? `
+              <div class="description">
+                ${escapeHtml(normalizedDesc)}
+              </div>
+              ${safeUri ? `<a href="${escapeHtml(safeUri)}" class="alert-link" target="_blank" rel="noopener noreferrer">Read full alert ↗</a>` : ''}
+            ` : '';
+
+        const toggleBlock = needsToggle ? `
+            <div class="toggle"
+                 data-alert-id="${alertId}"
+                 role="button"
+                 tabindex="0"
+                 aria-expanded="${isExpanded}"
+                 aria-label="${isExpanded ? 'Show less' : 'Show more'}">
+              ${isExpanded ? 'Show less ▲' : 'Show more ▼'}
+            </div>` : '';
+
         html += `
           <div class="alert-item ${severityClass}" role="article" aria-labelledby="alert-${alertId}">
             <div class="alert-header">
@@ -1642,20 +1700,7 @@ class NWSAlertCard extends HTMLElement {
               <span><strong>Urgency:</strong> ${escapeHtml(p.urgency || 'N/A')}</span>
               ${p.certainty ? `<span><strong>Certainty:</strong> ${escapeHtml(p.certainty)}</span>` : ''}
             </div>
-            ${isExpanded ? `
-              <div class="description">
-                ${escapeHtml(normalizedDesc)}
-              </div>
-              ${p.uri ? `<a href="${escapeHtml(p.uri)}" class="alert-link" target="_blank" rel="noopener noreferrer">Read full alert ↗</a>` : ''}
-            ` : ''}
-            <div class="toggle"
-                 data-alert-id="${alertId}"
-                 role="button"
-                 tabindex="0"
-                 aria-expanded="${isExpanded}"
-                 aria-label="${isExpanded ? 'Show less' : 'Show more'}">
-              ${isExpanded ? 'Show less ▲' : 'Show more ▼'}
-            </div>
+            ${descriptionBlock}${toggleBlock}
           </div>
         `;
       });
@@ -1716,9 +1761,9 @@ class NWSAlertCard extends HTMLElement {
   }
 
   static getStubConfig() {
-    // Minimal config shown when adding a new card via the UI.
-    // Only include required fields - avoid placeholder coordinates that
-    // would trigger real API calls and potentially fire action scripts.
+    // Minimal config shown when adding a new card via the UI. Uses a real
+    // zone (so the preview fetches live alerts) but no action entities, so
+    // no scripts/automations can fire from the placeholder card.
     return {
       nws_zone: 'KSZ007',
       email: 'homeassistant@example.com',
@@ -1734,7 +1779,7 @@ class NWSAlertCard extends HTMLElement {
 customElements.define('nws-alert-card', NWSAlertCard);
 
 console.info(
-  '%c NWS-ALERT-CARD %c v2.7.4 ',
+  '%c NWS-ALERT-CARD %c 2026.7.19 ',
   'color: black; background: #F2720C; font-weight: 600;',
   'color: black; background: #00a5c9; font-weight: 600;'
 );
