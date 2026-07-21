@@ -4,10 +4,9 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
-## [2026.7.19] - 2026-07-19
+## [2.8.0] - 2026-07-19
 
 ### Changed
-- Switched to CalVer versioning (`YYYY.M.D`).
 - Show the "Show more/Show less" toggle only for descriptions longer than 200 characters; short alerts now display in full with no toggle.
 - Pause alert polling while the browser tab is hidden and refresh once when it returns to the foreground, reducing needless calls to the NWS API.
 
