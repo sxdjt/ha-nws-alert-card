@@ -284,8 +284,13 @@ function createStyleElement() {
       line-height: 1.5;
       white-space: pre-line;
     }
+    /* Native <button> so Enter and Space work; text stays primary text color
+       (--primary-color text is 2.6:1 on the light theme) */
     .toggle {
-      color: var(--primary-color);
+      color: var(--primary-text-color);
+      background: none;
+      border: none;
+      font: inherit;
       cursor: pointer;
       font-size: 0.85em;
       user-select: none;
@@ -307,14 +312,18 @@ function createStyleElement() {
       text-align: center;
       margin: 8px 0;
     }
+    /* Text stays primary color for 4.5:1; the theme color is used only on the
+       bar and background tint */
     .error-message {
-      color: var(--error-color, #dc3545);
-      background: var(--error-color, #dc3545)22;
+      color: var(--primary-text-color);
+      background: color-mix(in srgb, var(--error-color, #dc3545) 13%, transparent);
+      border-left: 4px solid var(--error-color, #dc3545);
       font-weight: 500;
     }
     .warning-message {
-      color: var(--warning-color, #ffc107);
-      background: var(--warning-color, #ffc107)22;
+      color: var(--primary-text-color);
+      background: color-mix(in srgb, var(--warning-color, #ffc107) 13%, transparent);
+      border-left: 4px solid var(--warning-color, #ffc107);
     }
     .no-alerts {
       text-align: center;
@@ -324,7 +333,7 @@ function createStyleElement() {
     .alert-link {
       font-size: 0.85em;
       text-decoration: underline;
-      color: var(--primary-color);
+      color: var(--primary-text-color);
       display: inline-block;
       margin-top: 4px;
     }
@@ -339,6 +348,17 @@ function createStyleElement() {
       margin: 0 0 12px 0;
       font-size: var(--nws-title-font-size, 20px);
       color: var(--nws-title-color, inherit);
+    }
+    .visually-hidden {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
     .zone-subtitle {
       font-size: 0.85em;
@@ -1007,9 +1027,8 @@ class ZoneResolver {
 // ---------------------------------------------------------------------------
 
 // Editor inputs use ha-selector for text/number, ha-switch for toggles, and
-// ha-selector for entity pickers. NOTE: this card intentionally uses ha-selector
-// (not ha-textfield) for text/number inputs because ha-textfield broke in
-// HA 2026.5.1 (see v2.7.4). This overrides the monorepo default of ha-textfield.
+// ha-selector for entity pickers. ha-textfield broke in HA 2026.5.1 (see v2.7.4).
+// Accessibility rules follow docs/card-compatibility-guide.md in the monorepo.
 
 class NWSAlertCardEditor extends HTMLElement {
   constructor() {
@@ -1067,7 +1086,10 @@ class NWSAlertCardEditor extends HTMLElement {
 
     const selector = document.createElement('ha-selector');
     selector.hass = this._hass;
+    // ha-selector marks fields required (label asterisk) unless told otherwise
+    selector.required = false;
     selector.label = label;
+    if (helperText) selector.helper = helperText;
     if (type === 'number') {
       selector.selector = { number: { mode: 'box', step: 1 } };
     } else {
@@ -1086,14 +1108,54 @@ class NWSAlertCardEditor extends HTMLElement {
     return container;
   }
 
+  // Text color field: a text ha-selector plus an error message for invalid colors
+  _createColorField(field, label, value, helperText) {
+    const container = this._createTextfield(field, label, value, helperText);
+    const selector = container.querySelector('ha-selector');
+
+    // Live region exists from the start so screen readers announce the error
+    // when it appears; it is empty while the value is valid or blank
+    const error = document.createElement('div');
+    error.className = 'error-text';
+    error.setAttribute('aria-live', 'polite');
+    container.appendChild(error);
+
+    // Rebuild only when validity flips, so the live region announces once per
+    // transition rather than on every keystroke while the value stays invalid
+    let shown = false;
+    const updateError = (v) => {
+      const invalid = Boolean(v) && !CSS.supports('color', v);
+      if (invalid === shown) return;
+      shown = invalid;
+      error.replaceChildren();
+      if (!invalid) return;
+      const icon = document.createElement('ha-icon');
+      icon.icon = 'mdi:alert-circle';
+      icon.setAttribute('aria-hidden', 'true');
+      const prefix = document.createElement('strong');
+      prefix.textContent = 'Error: ';
+      const message = document.createElement('span');
+      message.append(prefix, `${label} is not a valid color. Use a hex code (#FF0000), a color name (red), or var(--token).`);
+      error.append(icon, message);
+    };
+    updateError(value);
+    selector.addEventListener('value-changed', (e) => updateError(e.detail.value));
+
+    return container;
+  }
+
   _createSwitch(field, label, checked, helperText) {
     const container = document.createElement('div');
     container.className = 'toggle-row';
 
-    const labelEl = document.createElement('label');
+    // A <label> beside ha-switch is not associated with it (shadow DOM), so the
+    // switch carries its own name and the visible text is a plain span
+    const labelEl = document.createElement('span');
+    labelEl.className = 'toggle-label';
     labelEl.textContent = label;
 
     const toggle = document.createElement('ha-switch');
+    toggle.setAttribute('aria-label', label);
     toggle.checked = checked || false;
     toggle.addEventListener('change', (e) => {
       this._valueChanged(field, e.target.checked);
@@ -1118,6 +1180,7 @@ class NWSAlertCardEditor extends HTMLElement {
 
     const selector = document.createElement('ha-selector');
     selector.hass = this._hass;
+    selector.required = false;
 
     // Configure selector based on domain filter
     if (domainFilter) {
@@ -1185,7 +1248,7 @@ class NWSAlertCardEditor extends HTMLElement {
         padding: 8px 0;
         flex-wrap: wrap;
       }
-      .toggle-row label {
+      .toggle-label {
         font-size: 14px;
         color: var(--primary-text-color);
       }
@@ -1200,6 +1263,25 @@ class NWSAlertCardEditor extends HTMLElement {
         font-size: 16px;
         font-weight: 500;
       }
+      /* Text stays primary color for 4.5:1; red only on non-text parts, which need 3:1 */
+      .error-text {
+        display: flex;
+        align-items: flex-start;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--primary-text-color);
+        margin-top: 6px;
+        padding: 4px 8px;
+        border-left: 3px solid var(--error-color, #db4437);
+      }
+      .error-text:empty {
+        display: none;
+      }
+      .error-text ha-icon {
+        flex: 0 0 auto;
+        color: var(--error-color, #db4437);
+        --mdc-icon-size: 16px;
+      }
     `;
 
     const root = document.createElement('div');
@@ -1209,7 +1291,12 @@ class NWSAlertCardEditor extends HTMLElement {
     basicSection.innerHTML = '<h3>Basic Settings</h3>';
 
     basicSection.appendChild(this._createTextfield('title', 'Card Title', this._config.title, 'Display title for the card'));
-    basicSection.appendChild(this._createTextfield('email', 'Email Address', this._config.email, 'Required for NWS API (User-Agent header)'));
+    basicSection.appendChild(this._createTextfield('email', 'Email Address', this._config.email, 'Recommended. Sent to the NWS API as contact info in the User-Agent header'));
+
+    const requiredNote = document.createElement('div');
+    requiredNote.className = 'section-note';
+    requiredNote.textContent = 'Required: set an NWS Zone Code, or both Latitude and Longitude, under Location below.';
+    basicSection.appendChild(requiredNote);
 
     root.appendChild(basicSection);
 
@@ -1248,11 +1335,11 @@ class NWSAlertCardEditor extends HTMLElement {
     colorNote.textContent = 'Enter CSS colors (e.g., #ff0000, red, rgb(255,0,0)). Leave empty for defaults.';
     colorContent.appendChild(colorNote);
 
-    colorContent.appendChild(this._createTextfield('title_color', 'Card Title Color', this._config.title_color, 'Default: inherit (theme primary text)'));
-    colorContent.appendChild(this._createTextfield('zone_color', 'Zone Subtitle Color', this._config.zone_color, 'Default: secondary text color'));
-    colorContent.appendChild(this._createTextfield('times_color', 'Time Range Color', this._config.times_color, 'Default: secondary text color'));
-    colorContent.appendChild(this._createTextfield('meta_color', 'Metadata Color', this._config.meta_color, 'Severity/urgency/certainty. Default: secondary text color'));
-    colorContent.appendChild(this._createTextfield('description_color', 'Description Color', this._config.description_color, 'Default: primary text color'));
+    colorContent.appendChild(this._createColorField('title_color', 'Card Title Color', this._config.title_color, 'Default: inherit (theme primary text)'));
+    colorContent.appendChild(this._createColorField('zone_color', 'Zone Subtitle Color', this._config.zone_color, 'Default: secondary text color'));
+    colorContent.appendChild(this._createColorField('times_color', 'Time Range Color', this._config.times_color, 'Default: secondary text color'));
+    colorContent.appendChild(this._createColorField('meta_color', 'Metadata Color', this._config.meta_color, 'Severity/urgency/certainty. Default: secondary text color'));
+    colorContent.appendChild(this._createColorField('description_color', 'Description Color', this._config.description_color, 'Default: primary text color'));
 
     root.appendChild(this._createExpansionPanel('Text Colors', colorContent));
 
@@ -1262,7 +1349,7 @@ class NWSAlertCardEditor extends HTMLElement {
 
     const locationNote = document.createElement('div');
     locationNote.className = 'section-note';
-    locationNote.textContent = 'Enter numeric coordinates OR a device_tracker entity ID with latitude/longitude attributes';
+    locationNote.textContent = 'Required: an NWS Zone Code, or both Latitude and Longitude. Coordinates can be numbers or a device_tracker entity ID with latitude/longitude attributes.';
     locationContent.appendChild(locationNote);
 
     locationContent.appendChild(this._createTextfield('latitude', 'Latitude', this._config.latitude, 'Number (e.g., 47.6062) or entity ID (e.g., device_tracker.phone)'));
@@ -1285,7 +1372,7 @@ class NWSAlertCardEditor extends HTMLElement {
 
     locationContent.appendChild(this._createTextfield('nws_zone', 'NWS Zone Code', this._config.nws_zone, 'Format: SSZNNN (e.g., WAZ558, COZ097)'));
 
-    root.appendChild(this._createExpansionPanel('Location', locationContent));
+    root.appendChild(this._createExpansionPanel('Location (required)', locationContent));
 
     // Section 4: Alert Entity Integration
     const entityContent = document.createElement('div');
@@ -1649,9 +1736,9 @@ class NWSAlertCard extends HTMLElement {
         let dangerMarker = '';
         if (this._config.show_severity_markers !== false) {
           if (p.severity === 'Extreme') {
-            dangerMarker = '<span class="danger-marker" aria-label="Extreme severity">🔴🔴🔴 </span>';
+            dangerMarker = '<span class="danger-marker" aria-hidden="true">🔴🔴🔴 </span>';
           } else if (p.severity === 'Severe') {
-            dangerMarker = '<span class="danger-marker" aria-label="Severe severity">🟠🟠 </span>';
+            dangerMarker = '<span class="danger-marker" aria-hidden="true">🟠🟠 </span>';
           }
         }
 
@@ -1672,18 +1759,16 @@ class NWSAlertCard extends HTMLElement {
               <div class="description">
                 ${escapeHtml(normalizedDesc)}
               </div>
-              ${safeUri ? `<a href="${escapeHtml(safeUri)}" class="alert-link" target="_blank" rel="noopener noreferrer">Read full alert ↗</a>` : ''}
+              ${safeUri ? `<a href="${escapeHtml(safeUri)}" class="alert-link" target="_blank" rel="noopener noreferrer" data-focus-key="link-${escapeHtml(alertId)}">Read full alert<span class="visually-hidden">: ${escapeHtml(p.event || 'Unknown Event')} (opens in new tab)</span><span aria-hidden="true"> ↗</span></a>` : ''}
             ` : '';
 
         const toggleBlock = needsToggle ? `
-            <div class="toggle"
-                 data-alert-id="${alertId}"
-                 role="button"
-                 tabindex="0"
-                 aria-expanded="${isExpanded}"
-                 aria-label="${isExpanded ? 'Show less' : 'Show more'}">
-              ${isExpanded ? 'Show less ▲' : 'Show more ▼'}
-            </div>` : '';
+            <button type="button" class="toggle"
+                 data-alert-id="${escapeHtml(alertId)}"
+                 data-focus-key="toggle-${escapeHtml(alertId)}"
+                 aria-expanded="${isExpanded}">
+              ${isExpanded ? 'Show less' : 'Show more'}<span class="visually-hidden">: ${escapeHtml(p.event || 'Unknown Event')}</span><span aria-hidden="true"> ${isExpanded ? '▲' : '▼'}</span>
+            </button>` : '';
 
         html += `
           <div class="alert-item ${severityClass}" role="article" aria-labelledby="alert-${alertId}">
@@ -1736,8 +1821,14 @@ class NWSAlertCard extends HTMLElement {
     this._renderAlerts(Array.from(this._lastAlertIds).map(id => this._alertsCache.get(id)).filter(Boolean));
   }
 
+  // innerHTML replaces every element, so focus would drop to the page after each
+  // toggle or data refresh. Restore it to the element with the same focus key.
   _renderContent(html) {
+    const focusKey = this.shadowRoot.activeElement?.dataset?.focusKey;
     this._content.innerHTML = html;
+    if (focusKey) {
+      this._content.querySelector(`[data-focus-key="${CSS.escape(focusKey)}"]`)?.focus();
+    }
   }
 
   getCardSize() {
@@ -1779,7 +1870,7 @@ class NWSAlertCard extends HTMLElement {
 customElements.define('nws-alert-card', NWSAlertCard);
 
 console.info(
-  '%c NWS-ALERT-CARD %c 2.8.0 ',
+  '%c NWS-ALERT-CARD %c 2026.11.11 ',
   'color: black; background: #F2720C; font-weight: 600;',
   'color: black; background: #00a5c9; font-weight: 600;'
 );

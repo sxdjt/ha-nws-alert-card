@@ -4,6 +4,16 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2026.11.11] - 2026-11-11
+
+### Changed
+- Versioning is CalVer (`YYYY.M.D`) again. This release sorts above the earlier 2026.7.19 release, so HACS installs pinned there see updates again.
+
+### Fixed
+- Keyboard: "Show more" is a button (Enter or Space), focus stays on it after the alert list updates, and each toggle and link names its alert.
+- Text contrast: the toggle, link and error messages now meet 4.5:1.
+- Visual editor: helper text is shown, the location requirement is stated, no false required markers, labeled switches, and errors for invalid colors.
+
 ## [2.8.0] - 2026-07-19
 
 ### Changed
