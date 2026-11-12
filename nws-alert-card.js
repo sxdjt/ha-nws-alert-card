@@ -1148,14 +1148,20 @@ class NWSAlertCardEditor extends HTMLElement {
     const container = document.createElement('div');
     container.className = 'toggle-row';
 
-    // A <label> beside ha-switch is not associated with it (shadow DOM), so the
-    // switch carries its own name and the visible text is a plain span
+    // A <label> beside ha-switch is not associated with it (shadow DOM), so the visible
+    // text is a plain span. In current HA (Web Awesome) only slotted text names the
+    // switch's inner input, so the label is slotted visually hidden; the host aria-label
+    // covers older MWC-based releases.
     const labelEl = document.createElement('span');
     labelEl.className = 'toggle-label';
     labelEl.textContent = label;
 
     const toggle = document.createElement('ha-switch');
     toggle.setAttribute('aria-label', label);
+    const switchName = document.createElement('span');
+    switchName.className = 'visually-hidden';
+    switchName.textContent = label;
+    toggle.appendChild(switchName);
     toggle.checked = checked || false;
     toggle.addEventListener('change', (e) => {
       this._valueChanged(field, e.target.checked);
@@ -1281,6 +1287,17 @@ class NWSAlertCardEditor extends HTMLElement {
         flex: 0 0 auto;
         color: var(--error-color, #db4437);
         --mdc-icon-size: 16px;
+      }
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
       }
     `;
 
@@ -1870,7 +1887,7 @@ class NWSAlertCard extends HTMLElement {
 customElements.define('nws-alert-card', NWSAlertCard);
 
 console.info(
-  '%c NWS-ALERT-CARD %c 2026.11.11 ',
+  '%c NWS-ALERT-CARD %c 2026.11.12 ',
   'color: black; background: #F2720C; font-weight: 600;',
   'color: black; background: #00a5c9; font-weight: 600;'
 );
