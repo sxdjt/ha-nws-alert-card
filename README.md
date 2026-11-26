@@ -81,7 +81,7 @@ email: your-email@example.com  # Recommended: contact info the NWS API asks for
 | `email` | string | No (recommended) | `homeassistant@example.com` | Your email for the NWS API User-Agent header. The NWS asks API users for contact info; an invalid address is replaced by the default |
 | `latitude` | number or string | Conditional | - | Latitude coordinate (number) or entity ID (string). Required with `longitude` if `nws_zone` not specified. |
 | `longitude` | number or string | Conditional | - | Longitude coordinate (number) or entity ID (string). Required with `latitude` if `nws_zone` not specified. |
-| `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. |
+| `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. Case and spaces are ignored; a value that is not a zone code is an error (or ignored when lat/lon are set) |
 | `alert_entity` | string | No | - | Entity ID of input_text helper for alert data (e.g., `input_text.nws_alert_types`) |
 | `alert_title_font_size` | number | No | `16` | Alert event name font size in pixels (8-48) |
 | `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |

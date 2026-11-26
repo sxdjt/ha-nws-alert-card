@@ -5,6 +5,7 @@ All notable changes to the NWS Alert Card will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- `nws_zone` is trimmed and upper-cased (`waz558` works). A value that is not a zone code shows an error instead of failing quietly after three retries, or is ignored when latitude/longitude are set.
 - When the coordinate-to-zone lookup fails (for example the NWS Points API is down), the card falls back to `nws_zone` as documented. It showed "Unable to determine NWS zone" instead.
 - An `update_interval` of 0, a negative number or text no longer polls the NWS API continuously; it uses the 300-second default. Values below 60 seconds use 60.
 - Coordinates typed into the visual editor work. The Latitude and Longitude fields save text, and the card treated every text value as an entity ID, so `47.6062` never resolved to a zone. A value that is a plain number is now used as a number.

@@ -89,11 +89,21 @@ describe('location', () => {
   });
 
   // N8 (B8): nws_zone is used in the API path as typed
-  test('nws_zone is trimmed and upper-cased', { todo: 'nws_zone is not normalized or validated' }, async () => {
+  test('nws_zone is trimmed and upper-cased', async () => {
     quiet();
     api.alerts('WAZ558', []);
     const card = await makeCard({ nws_zone: ' waz558 ' });
     assert.equal(card._zoneResolver.currentZone, 'WAZ558');
+  });
+
+  test('a malformed nws_zone is an error, or ignored when coordinates are set', () => {
+    quiet();
+    mock.timers.enable({ apis: ['setInterval'] });
+    assert.throws(() => document.createElement('nws-alert-card').setConfig({ nws_zone: 'WAZ558/../x' }), /must be a zone code/);
+    const card = document.createElement('nws-alert-card');
+    card.setConfig({ nws_zone: 'nope', latitude: 1, longitude: 2 });
+    card.disconnectedCallback();
+    assert.equal('nws_zone' in card._config, false);
   });
 });
 

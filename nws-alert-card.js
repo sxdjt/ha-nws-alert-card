@@ -1498,9 +1498,25 @@ class NWSAlertCard extends HTMLElement {
   }
 
   setConfig(config) {
+    config = { ...config };
+    const hasLatLon = config.latitude !== undefined && config.longitude !== undefined;
+
+    // nws_zone goes into the API path: normalize it, and reject anything that is not a
+    // zone code (SSZNNN / SSCNNN) rather than requesting a malformed URL
+    if (config.nws_zone !== undefined && config.nws_zone !== null && config.nws_zone !== '') {
+      const zone = String(config.nws_zone).trim().toUpperCase();
+      if (/^[A-Z]{2}[CZ]\d{3}$/.test(zone)) {
+        config.nws_zone = zone;
+      } else if (hasLatLon) {
+        console.warn(`NWS Alert Card: 'nws_zone' ${config.nws_zone} is not a zone code (e.g. WAZ558). Ignoring it.`);
+        delete config.nws_zone;
+      } else {
+        throw new Error(`'nws_zone' must be a zone code such as WAZ558 or COZ097. Got: ${config.nws_zone}`);
+      }
+    }
+
     // Validate configuration - either nws_zone OR latitude/longitude must be provided
     const hasZone = config.nws_zone;
-    const hasLatLon = config.latitude !== undefined && config.longitude !== undefined;
 
     if (!hasZone && !hasLatLon) {
       throw new Error("Either 'nws_zone' or both 'latitude' and 'longitude' are required in card configuration");
