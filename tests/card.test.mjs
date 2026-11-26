@@ -81,7 +81,7 @@ describe('location', () => {
   });
 
   // N2 (B8): README says nws_zone is the fallback when coordinates fail to resolve
-  test('a failed Points lookup falls back to nws_zone', { todo: 'only an unresolvable coordinate falls back; a failed Points API call returns null' }, async () => {
+  test('a failed Points lookup falls back to nws_zone', async () => {
     quiet();
     api.on('/points/47.6062,-122.3321', () => ({ status: 500 })).alerts('COZ097', []);
     const card = await makeCard({ latitude: 47.6062, longitude: -122.3321, nws_zone: 'COZ097' });

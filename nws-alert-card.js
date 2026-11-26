@@ -955,8 +955,14 @@ class ZoneResolver {
       return null;
     }
 
-    // Convert coordinates to zone
-    return await this.fetchZoneFromCoordinates(lat, lon, config.email);
+    // Convert coordinates to zone. A failed Points API lookup falls back to nws_zone
+    // too, not only a coordinate that cannot be resolved.
+    const zone = await this.fetchZoneFromCoordinates(lat, lon, config.email);
+    if (!zone && config.nws_zone) {
+      console.warn('NWS Alert Card: Zone lookup for coordinates failed, falling back to nws_zone');
+      return config.nws_zone;
+    }
+    return zone;
   }
 
   /**
