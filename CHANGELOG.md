@@ -4,6 +4,9 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+### Security
+- Values from the NWS API are escaped in every attribute. The escape helper did not encode `"`, and the alert ID and severity were inserted without escaping, so a crafted value could add attributes (including event handlers) to the card. Unrecognized severities now render as Unknown.
+
 ## [2026.11.12] - 2026-11-12
 
 Accessibility improvements (screen reader).

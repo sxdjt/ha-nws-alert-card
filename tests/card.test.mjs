@@ -38,12 +38,25 @@ describe('rendering', () => {
   });
 
   // D6 (B11): escapeHtml does not encode quotes; alert id and severity are raw
-  test('API values cannot add attributes', { todo: 'escapeHtml leaves quotes; alert id and severity are interpolated raw' }, async () => {
+  test('API values cannot add attributes', async () => {
     quiet();
     const evil = 'x" onmouseover="alert(1)';
     api.alerts('WAZ558', [alert({ severity: evil, event: 'E', description: 'd'.repeat(300), uri: `https://a/${evil}` }, `id${evil}`)]);
     const card = await makeCard({ nws_zone: 'WAZ558' });
     assert.equal(card.shadowRoot.querySelectorAll('[onmouseover]').length, 0, 'injected attribute was rendered');
+    assert.equal(items(card)[0].classList.contains('severity-Unknown'), true);
+  });
+
+  test('focus stays on the toggle after it re-renders the card', async () => {
+    quiet();
+    api.alerts('WAZ558', [alert({ description: 'd'.repeat(300) }, 'https://api.weather.gov/alerts/a"b')]);
+    const card = await makeCard({ nws_zone: 'WAZ558' });
+    const toggle = card.shadowRoot.querySelector('.toggle');
+    toggle.focus();
+    toggle.click();
+    const after = card.shadowRoot.activeElement;
+    assert.equal(after?.dataset.focusKey, 'toggle-https://api.weather.gov/alerts/a"b');
+    assert.equal(after?.getAttribute('aria-expanded'), 'true');
   });
 });
 

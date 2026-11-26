@@ -179,13 +179,19 @@ function formatTime(isoString) {
 }
 
 /**
- * Escape HTML to prevent XSS via textContent/innerHTML conversion.
+ * Escape a value for innerHTML, in text and in double-quoted attributes.
+ * div.innerHTML encodes <, > and & but not ", so quotes are encoded too
+ * (same helper as rachio-card).
  */
-function escapeHtml(text) {
+function escapeHtml(value) {
+  if (value == null) return '';
   const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
+  div.textContent = String(value);
+  return div.innerHTML.replace(/"/g, '&quot;');
 }
+
+// Severities with their own style; anything else from the API renders as Unknown
+const KNOWN_SEVERITIES = ['Extreme', 'Severe', 'Moderate', 'Minor'];
 
 /**
  * Convert NWS hard line breaks to natural flowing text.
@@ -1743,7 +1749,9 @@ class NWSAlertCard extends HTMLElement {
       sortedAlerts.forEach(alert => {
         const p = alert.properties;
         const alertId = alert.id;
-        const severityClass = `severity-${p.severity || 'Unknown'}`;
+        // Every API value below is escaped; the class comes from a fixed list
+        const safeId = escapeHtml(alertId);
+        const severityClass = `severity-${KNOWN_SEVERITIES.includes(p.severity) ? p.severity : 'Unknown'}`;
         const defaultExpanded = this._config.show_expanded === true;
         const isExpanded = defaultExpanded
           ? !this._collapsedAlerts.has(alertId)
@@ -1776,25 +1784,25 @@ class NWSAlertCard extends HTMLElement {
               <div class="description">
                 ${escapeHtml(normalizedDesc)}
               </div>
-              ${safeUri ? `<a href="${escapeHtml(safeUri)}" class="alert-link" target="_blank" rel="noopener noreferrer" data-focus-key="link-${escapeHtml(alertId)}">Read full alert<span class="visually-hidden">: ${escapeHtml(p.event || 'Unknown Event')} (opens in new tab)</span><span aria-hidden="true"> ↗</span></a>` : ''}
+              ${safeUri ? `<a href="${escapeHtml(safeUri)}" class="alert-link" target="_blank" rel="noopener noreferrer" data-focus-key="link-${safeId}">Read full alert<span class="visually-hidden">: ${escapeHtml(p.event || 'Unknown Event')} (opens in new tab)</span><span aria-hidden="true"> ↗</span></a>` : ''}
             ` : '';
 
         const toggleBlock = needsToggle ? `
             <button type="button" class="toggle"
-                 data-alert-id="${escapeHtml(alertId)}"
-                 data-focus-key="toggle-${escapeHtml(alertId)}"
+                 data-alert-id="${safeId}"
+                 data-focus-key="toggle-${safeId}"
                  aria-expanded="${isExpanded}">
               ${isExpanded ? 'Show less' : 'Show more'}<span class="visually-hidden">: ${escapeHtml(p.event || 'Unknown Event')}</span><span aria-hidden="true"> ${isExpanded ? '▲' : '▼'}</span>
             </button>` : '';
 
         html += `
-          <div class="alert-item ${severityClass}" role="article" aria-labelledby="alert-${alertId}">
+          <div class="alert-item ${severityClass}" role="article" aria-labelledby="alert-${safeId}">
             <div class="alert-header">
-              <h3 id="alert-${alertId}">
+              <h3 id="alert-${safeId}">
                 ${dangerMarker}${escapeHtml(p.event || 'Unknown Event')}
               </h3>
               <span class="times" aria-label="Alert timeframe">
-                ${formatTime(p.onset)} → ${formatTime(p.ends || p.expires)}
+                ${escapeHtml(formatTime(p.onset))} → ${escapeHtml(formatTime(p.ends || p.expires))}
               </span>
             </div>
             <div class="alert-meta">
@@ -1844,7 +1852,9 @@ class NWSAlertCard extends HTMLElement {
     const focusKey = this.shadowRoot.activeElement?.dataset?.focusKey;
     this._content.innerHTML = html;
     if (focusKey) {
-      this._content.querySelector(`[data-focus-key="${CSS.escape(focusKey)}"]`)?.focus();
+      // Compare dataset values rather than building a selector from an API-supplied id
+      [...this._content.querySelectorAll('[data-focus-key]')]
+        .find((el) => el.dataset.focusKey === focusKey)?.focus();
     }
   }
 
