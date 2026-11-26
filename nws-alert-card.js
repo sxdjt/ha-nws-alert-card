@@ -728,6 +728,14 @@ class ActionManager {
 // Zone Resolver
 // ---------------------------------------------------------------------------
 
+// The editor's Latitude/Longitude fields are text, so a typed 47.6062 arrives as the
+// string "47.6062". A coordinate string that is a plain number is a number, not an
+// entity ID.
+const NUMERIC_COORDINATE = /^\s*[-+]?(\d+(\.\d*)?|\.\d+)\s*$/;
+function isEntityCoordinate(value) {
+  return typeof value === 'string' && !NUMERIC_COORDINATE.test(value);
+}
+
 /**
  * Manages NWS zone resolution from coordinates and entities.
  * Handles mobile device detection, coordinate-to-zone conversion via the
@@ -780,9 +788,12 @@ class ZoneResolver {
   resolveCoordinate(coordConfig, coordType, hass) {
     if (coordConfig === undefined || coordConfig === null) return null;
 
-    // If it's a number, return it directly
+    // If it's a number (or a numeric string from the editor), return it directly
     if (typeof coordConfig === 'number') {
       return coordConfig;
+    }
+    if (typeof coordConfig === 'string' && !isEntityCoordinate(coordConfig)) {
+      return parseFloat(coordConfig);
     }
 
     // If it's a string, treat as entity ID
@@ -994,8 +1005,8 @@ class ZoneResolver {
     // On desktop, mobile_latitude/longitude entities are not active, so skip.
     const isMobile = this.isMobileDevice();
     const hasActiveEntityCoords = isMobile
-      ? (typeof config.mobile_latitude === 'string') || (typeof config.mobile_longitude === 'string')
-      : (typeof config.latitude === 'string') || (typeof config.longitude === 'string');
+      ? isEntityCoordinate(config.mobile_latitude) || isEntityCoordinate(config.mobile_longitude)
+      : isEntityCoordinate(config.latitude) || isEntityCoordinate(config.longitude);
 
     if (!hasActiveEntityCoords) return;
 

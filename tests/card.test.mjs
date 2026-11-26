@@ -62,10 +62,21 @@ describe('rendering', () => {
 
 describe('location', () => {
   // N3 (B6/B7): the editor's text field stores coordinates as strings
-  test('numeric coordinates given as strings are used as numbers', { todo: 'a string is always treated as an entity ID' }, async () => {
+  test('numeric coordinates given as strings are used as numbers', async () => {
     quiet();
     api.point(47.6062, -122.3321, 'WAZ558').alerts('WAZ558', []);
     const card = await makeCard({ latitude: '47.6062', longitude: '-122.3321' }, makeHass());
+    assert.equal(card._zoneResolver.currentZone, 'WAZ558');
+    assert.equal(card._zoneResolver._zoneResolveTimeout, null);
+    card.hass = makeHass();
+    assert.equal(card._zoneResolver._zoneResolveTimeout, null, 'numeric strings must not start entity re-resolution');
+  });
+
+  test('an entity ID coordinate still reads the entity attributes', async () => {
+    quiet();
+    api.point(47.6062, -122.3321, 'WAZ558').alerts('WAZ558', []);
+    const hass = makeHass({ 'device_tracker.p': { state: 'home', attributes: { latitude: 47.6062, longitude: -122.3321 } } });
+    const card = await makeCard({ latitude: 'device_tracker.p', longitude: 'device_tracker.p' }, hass);
     assert.equal(card._zoneResolver.currentZone, 'WAZ558');
   });
 

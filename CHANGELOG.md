@@ -4,6 +4,9 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- Coordinates typed into the visual editor work. The Latitude and Longitude fields save text, and the card treated every text value as an entity ID, so `47.6062` never resolved to a zone. A value that is a plain number is now used as a number.
+
 ### Security
 - Values from the NWS API are escaped in every attribute. The escape helper did not encode `"`, and the alert ID and severity were inserted without escaping, so a crafted value could add attributes (including event handlers) to the card. Unrecognized severities now render as Unknown.
 
