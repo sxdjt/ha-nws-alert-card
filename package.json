@@ -1,0 +1,16 @@
+{
+  "name": "ha-nws-alert-card",
+  "private": true,
+  "description": "Development tooling only. The card itself is nws-alert-card.js and has no build step or runtime dependencies.",
+  "license": "MIT",
+  "scripts": {
+    "test": "tests/run-capped.sh node --test --test-timeout=10000 --test-concurrency=1 tests/",
+    "coverage": "tests/run-capped.sh node --test --test-timeout=10000 --test-concurrency=1 --experimental-test-coverage --test-coverage-include=nws-alert-card.js tests/"
+  },
+  "engines": {
+    "node": ">=20.11"
+  },
+  "devDependencies": {
+    "happy-dom": "^21.0.4"
+  }
+}

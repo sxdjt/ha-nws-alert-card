@@ -11,3 +11,7 @@ claude.md
 *.swp
 *.swo
 *~
+
+# Test tooling
+node_modules/
+coverage/
