@@ -1103,7 +1103,7 @@ class NWSAlertCardEditor extends HTMLElement {
     this._fireConfigChanged();
   }
 
-  _createTextfield(field, label, value, helperText, type = 'text') {
+  _createTextfield(field, label, value, helperText, type = 'text', limits = {}) {
     const container = document.createElement('div');
     container.className = 'field';
 
@@ -1114,7 +1114,7 @@ class NWSAlertCardEditor extends HTMLElement {
     selector.label = label;
     if (helperText) selector.helper = helperText;
     if (type === 'number') {
-      selector.selector = { number: { mode: 'box', step: 1 } };
+      selector.selector = { number: { mode: 'box', step: 1, ...limits } };
     } else {
       selector.selector = { text: {} };
     }
@@ -1344,7 +1344,7 @@ class NWSAlertCardEditor extends HTMLElement {
     const displayContent = document.createElement('div');
     displayContent.className = 'panel-content';
 
-    displayContent.appendChild(this._createTextfield('update_interval', 'Update Interval', this._config.update_interval, 'Refresh interval in seconds (default: 300)', 'number'));
+    displayContent.appendChild(this._createTextfield('update_interval', 'Update Interval', this._config.update_interval, 'Refresh interval in seconds (minimum 60, default: 300)', 'number', { min: 60 }));
     displayContent.appendChild(this._createSwitch('show_severity_markers', 'Show Severity Markers', this._config.show_severity_markers !== false, 'Display danger markers for Extreme/Severe alerts'));
     displayContent.appendChild(this._createSwitch('show_expanded', 'Expand Alerts by Default', this._config.show_expanded, 'Show full alert descriptions by default'));
 
@@ -1359,10 +1359,10 @@ class NWSAlertCardEditor extends HTMLElement {
     fontNote.textContent = 'Customize font sizes in pixels (8-48). Leave empty for defaults.';
     fontContent.appendChild(fontNote);
 
-    fontContent.appendChild(this._createTextfield('title_font_size', 'Card Title Font Size', this._config.title_font_size, 'Default: 20px', 'number'));
-    fontContent.appendChild(this._createTextfield('alert_title_font_size', 'Alert Title Font Size', this._config.alert_title_font_size, 'Default: 16px', 'number'));
-    fontContent.appendChild(this._createTextfield('meta_font_size', 'Metadata Font Size', this._config.meta_font_size, 'Time range and severity/urgency info. Default: 14px', 'number'));
-    fontContent.appendChild(this._createTextfield('description_font_size', 'Description Font Size', this._config.description_font_size, 'Default: 14px', 'number'));
+    fontContent.appendChild(this._createTextfield('title_font_size', 'Card Title Font Size', this._config.title_font_size, 'Default: 20px', 'number', { min: 8, max: 48 }));
+    fontContent.appendChild(this._createTextfield('alert_title_font_size', 'Alert Title Font Size', this._config.alert_title_font_size, 'Default: 16px', 'number', { min: 8, max: 48 }));
+    fontContent.appendChild(this._createTextfield('meta_font_size', 'Metadata Font Size', this._config.meta_font_size, 'Time range and severity/urgency info. Default: 14px', 'number', { min: 8, max: 48 }));
+    fontContent.appendChild(this._createTextfield('description_font_size', 'Description Font Size', this._config.description_font_size, 'Default: 14px', 'number', { min: 8, max: 48 }));
 
     root.appendChild(this._createExpansionPanel('Font Sizes', fontContent));
 
@@ -1441,7 +1441,7 @@ class NWSAlertCardEditor extends HTMLElement {
     actionContent.appendChild(this._createEntityPicker('severe_action', 'Severe Severity Action', this._config.severe_action, ['script', 'automation']));
     actionContent.appendChild(this._createEntityPicker('extreme_action', 'Extreme Severity Action', this._config.extreme_action, ['script', 'automation']));
 
-    actionContent.appendChild(this._createTextfield('alert_trigger_cooldown', 'Cooldown Period', this._config.alert_trigger_cooldown, 'Minutes between action triggers (0 = no cooldown, default: 60)', 'number'));
+    actionContent.appendChild(this._createTextfield('alert_trigger_cooldown', 'Cooldown Period', this._config.alert_trigger_cooldown, 'Minutes between action triggers (0 = no cooldown, default: 60)', 'number', { min: 0 }));
 
     root.appendChild(this._createExpansionPanel('Action Triggers', actionContent));
 

@@ -16,13 +16,13 @@ describe('basic fields', () => {
 
 describe('limits', () => {
   // N19 (B5): the card ignores font sizes outside 8-48
-  test('font size fields are limited to 8-48', { todo: 'number selectors have no min/max' }, async () => {
+  test('font size fields are limited to 8-48', async () => {
     const editor = await makeEditor({ nws_zone: 'WAZ558' });
     const { min, max } = control(editor, 'Card Title Font Size').selector.number;
     assert.deepEqual([min, max], [8, 48]);
   });
 
-  test('update interval and cooldown have a minimum', { todo: 'number selectors have no min' }, async () => {
+  test('update interval and cooldown have a minimum', async () => {
     const editor = await makeEditor({ nws_zone: 'WAZ558' });
     assert.equal(control(editor, 'Update Interval').selector.number.min, 60);
     assert.equal(control(editor, 'Cooldown Period').selector.number.min, 0);
