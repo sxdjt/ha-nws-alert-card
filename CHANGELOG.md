@@ -5,6 +5,7 @@ All notable changes to the NWS Alert Card will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- Severity actions no longer run when one of several alerts expires. Any change to the set of alerts triggered the action; now only a new alert or a severity increase does, as documented.
 - `nws_zone` is trimmed and upper-cased (`waz558` works). A value that is not a zone code shows an error instead of failing quietly after three retries, or is ignored when latitude/longitude are set.
 - When the coordinate-to-zone lookup fails (for example the NWS Points API is down), the card falls back to `nws_zone` as documented. It showed "Unable to determine NWS zone" instead.
 - An `update_interval` of 0, a negative number or text no longer polls the NWS API continuously; it uses the 300-second default. Values below 60 seconds use 60.

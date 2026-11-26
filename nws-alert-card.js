@@ -579,9 +579,9 @@ class ActionManager {
       return { shouldTrigger: true, severity: currentMaxSeverity };
     }
 
-    // Check if new alerts appeared (set comparison)
-    const currentIds = new Set(currentAlerts.map(a => a.id));
-    const hasNewAlerts = !setsEqual(currentIds, lastAlertIds);
+    // Check if new alerts appeared. Only an ID that was not there before counts: an
+    // alert expiring changes the set too, and removals must not trigger (README).
+    const hasNewAlerts = currentAlerts.some(a => !lastAlertIds.has(a.id));
 
     if (hasNewAlerts) {
       console.log(`NWS Alert Card: New alerts detected with severity: ${currentMaxSeverity}`);

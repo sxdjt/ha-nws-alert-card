@@ -160,7 +160,7 @@ describe('setConfig on an existing card', () => {
 
 describe('action triggers', () => {
   // N1 (B8): README: "No action when alerts are removed or severity decreases"
-  test('removing one of several alerts does not trigger an action', { todo: 'any change in the alert ID set triggers' }, async () => {
+  test('removing one of several alerts does not trigger an action', async () => {
     quiet();
     const a = alert({ severity: 'Moderate' });
     const b = alert({ severity: 'Moderate' });
@@ -173,5 +173,9 @@ describe('action triggers', () => {
     await card._fetchAlerts();
     await settle();
     assert.equal(hass.calls.length, 1);
+    features = [a, alert({ severity: 'Minor' })];
+    await card._fetchAlerts();
+    await settle();
+    assert.equal(hass.calls.length, 2, 'a new alert must trigger');
   });
 });
