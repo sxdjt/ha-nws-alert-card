@@ -48,7 +48,8 @@ template:
           {{ 0 if raw == '' else raw.split(',') | length }}
         highest_severity: >
           {% set raw = states('input_text.nws_alert_types') %}
-          {{ none if raw == '' else raw.split(',')[0].split(':')[1] }}
+          {% set sev = [] if raw == '' else raw.split(',') | map('regex_replace', '^.*:', '') | list %}
+          {{ ['Extreme', 'Severe', 'Moderate', 'Minor', 'Unknown'] | select('in', sev) | first | default(none) }}
         all_types: >
           {% set raw = states('input_text.nws_alert_types') %}
           {% if raw == '' %}
@@ -60,7 +61,7 @@ template:
 
 ## Data Format
 
-The input_text stores alerts as comma-separated `EventType:Severity` pairs, ordered by NWS priority:
+The input_text stores alerts as comma-separated `EventType:Severity` pairs, ordered by NWS priority. Priority is the NWS's ranking of alert types, not severity: the first entry is not always the most severe one, which is why `highest_severity` above checks every entry.
 
 ```
 Winter Storm Warning:Moderate,Wind Advisory:Minor,Frost Advisory:Minor
@@ -141,7 +142,8 @@ Show a card only when alerts are active:
 ```yaml
 type: conditional
 conditions:
-  - entity: input_text.nws_alert_types
+  - condition: state
+    entity: input_text.nws_alert_types
     state_not: ""
 card:
   type: markdown

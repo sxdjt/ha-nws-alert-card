@@ -22,7 +22,7 @@ A custom Lovelace card that displays active US National Weather Service alerts w
 - **[Alert entity integration](#alert-entity-integration)** for automations and other HA activities outside of the card
 - Separate desktop and mobile location configurations
 - Severity-based color coding (Extreme, Severe, Moderate, Minor, Unknown)
-- Expandable alert descriptions with "Show more/less" toggle
+- Expandable alert descriptions with "Show more/less" toggle (for descriptions over 200 characters)
 - 24-hour coordinate-to-zone caching to minimize API calls
 
 ## Installation
@@ -71,14 +71,14 @@ Add the card to your Lovelace dashboard:
 ```yaml
 type: custom:nws-alert-card
 nws_zone: AKZ844  # Your NWS zone (REQUIRED if not using lat/lon)
-email: your-email@example.com  # REQUIRED for NWS API compliance
+email: your-email@example.com  # Recommended: contact info the NWS API asks for
 ```
 
 ### Configuration Options
 
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
-| `email` | string | Yes | - | Your email for NWS API User-Agent header |
+| `email` | string | No (recommended) | `homeassistant@example.com` | Your email for the NWS API User-Agent header. The NWS asks API users for contact info; an invalid address is replaced by the default |
 | `latitude` | number or string | Conditional | - | Latitude coordinate (number) or entity ID (string). Required with `longitude` if `nws_zone` not specified. |
 | `longitude` | number or string | Conditional | - | Longitude coordinate (number) or entity ID (string). Required with `latitude` if `nws_zone` not specified. |
 | `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. |
@@ -95,8 +95,8 @@ email: your-email@example.com  # REQUIRED for NWS API compliance
 | `mobile_longitude` | number or string | No | - | Mobile override for longitude. Must be used with `mobile_latitude`. |
 | `moderate_action` | string | No | - | Entity ID of script/automation for Moderate severity |
 | `severe_action` | string | No | - | Entity ID of script/automation for Severe severity |
-| `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default |
-| `show_severity_markers` | boolean | No | `true` | Show markers for severe alerts |
+| `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default. Descriptions of 200 characters or less are always shown in full, with no toggle |
+| `show_severity_markers` | boolean | No | `true` | Show colored dot markers before Extreme and Severe alert titles |
 | `times_color` | string | No | `secondary text` | CSS color for alert time range text |
 | `title_color` | string | No | `inherit` | CSS color for the card title |
 | `title_font_size` | number | No | `20` | Card title font size in pixels (8-48) |
@@ -120,7 +120,7 @@ Configure scripts or automations to run when alerts appear or severity increases
 - Entity IDs must be `script.*` or `automation.*` format
 - **Cooldown Protection**: After triggering, each severity has a cooldown period (default 60 minutes)
   - Prevents actions from firing on every page reload
-  - Cooldown tracked per severity level in browser localStorage
+  - Cooldown tracked per severity level and zone in browser localStorage (so per browser, not per HA instance)
   - Set `alert_trigger_cooldown: 0` to disable cooldown
 
 **Example:**
