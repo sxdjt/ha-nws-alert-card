@@ -16,6 +16,8 @@ All notable changes to the NWS Alert Card will be documented in this file.
 - When the coordinate-to-zone lookup fails (for example the NWS Points API is down), the card falls back to `nws_zone` as documented. It showed "Unable to determine NWS zone" instead.
 - An `update_interval` of 0, a negative number or text no longer polls the NWS API continuously; it uses the 300-second default. Values below 60 seconds use 60.
 - Coordinates typed into the visual editor work. The Latitude and Longitude fields save text, and the card treated every text value as an entity ID, so `47.6062` never resolved to a zone. A value that is a plain number is now used as a number.
+- Sections view: the card was a fixed 3 rows tall (about 184px), so one expanded alert ran over the card below. The card is now exactly as tall as its alerts (it can no longer be given a fixed height in the layout tab).
+- A long URL or unbroken word in an alert description wraps inside the card; it ran past the card's edge.
 
 ### Security
 - Values from the NWS API are escaped in every attribute. The escape helper did not encode `"`, and the alert ID and severity were inserted without escaping, so a crafted value could add attributes (including event handlers) to the card. Unrecognized severities now render as Unknown.

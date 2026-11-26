@@ -16,7 +16,7 @@ describe('card picker and sizing', () => {
     assert.deepEqual(Card.getStubConfig(), { nws_zone: 'KSZ007', email: 'homeassistant@example.com', title: 'NWS Weather Alert' });
     api.alerts('WAZ558', Array.from({ length: 9 }, () => alert()));
     const card = await makeCard({ nws_zone: 'WAZ558' });
-    assert.deepEqual(card.getGridOptions(), { rows: 3, columns: 12, min_rows: 2, min_columns: 6 });
+    assert.deepEqual(card.getGridOptions(), { rows: 'auto', columns: 12, min_columns: 6 });
     assert.equal(card.getCardSize(), 8);
     assert.equal(document.createElement('nws-alert-card').getCardSize(), 2);
   });

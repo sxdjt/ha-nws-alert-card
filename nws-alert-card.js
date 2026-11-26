@@ -285,6 +285,8 @@ function createStyleElement() {
       font-size: var(--nws-description-font-size, 14px);
       line-height: 1.5;
       white-space: pre-line;
+      /* Alert text can hold long URLs; without this one ran past the card (guide D7) */
+      overflow-wrap: anywhere;
     }
     /* Native <button> so Enter and Space work; text stays primary text color
        (--primary-color text is 2.6:1 on the light theme) */
@@ -1941,12 +1943,13 @@ class NWSAlertCard extends HTMLElement {
     return alertCount === 0 ? 2 : Math.min(2 + alertCount, 8);
   }
 
-  // Sections view (grid layout) sizing - 12-column grid system
+  // Sections view (grid layout) sizing - 12-column grid system. rows: 'auto' makes the card
+  // exactly as tall as its alerts; a fixed 3 rows (about 184px) was shorter than one
+  // expanded alert, so the card below drew over it (guide D7)
   getGridOptions() {
     return {
-      rows: 3,
+      rows: 'auto',
       columns: 12,
-      min_rows: 2,
       min_columns: 6,
     };
   }

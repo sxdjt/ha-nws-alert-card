@@ -200,3 +200,20 @@ describe('action triggers', () => {
     assert.equal(hass.calls.length, 2, 'a new alert must trigger');
   });
 });
+
+// Guide D7 (2026-11-26, found on the ha-test Variety page): the card must stay inside its slot
+describe('layout stays inside the card (D7)', () => {
+  const rule = (card, sel) => ([...card.shadowRoot.querySelectorAll('style')].map((s) => s.textContent).join(' ')
+    .replace(/\s+/g, ' ').match(new RegExp(`\\${sel} \\{[^}]*\\}`)) || [''])[0];
+
+  test('a long URL or unbroken word in a description wraps inside the card', async () => {
+    const card = await makeCard({ nws_zone: 'WAZ558' });
+    assert.match(rule(card, '.description'), /overflow-wrap: anywhere;/);
+  });
+
+  test('the sections view sizes the card to its alerts, not a fixed 3 rows', () => {
+    // 3 rows is about 184px; one expanded alert is taller, so the card below drew over it
+    const card = document.createElement('nws-alert-card');
+    assert.equal(card.getGridOptions().rows, 'auto');
+  });
+});
