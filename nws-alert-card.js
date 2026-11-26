@@ -159,23 +159,19 @@ function sanitizeEmail(email) {
  */
 function formatTime(isoString) {
   if (!isoString) return 'N/A';
-  try {
-    const date = new Date(isoString);
-    if (isNaN(date.getTime())) return 'Invalid Date';
+  const date = new Date(isoString);
+  if (isNaN(date.getTime())) return 'Invalid Date';
 
-    return date.toLocaleString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: '2-digit',
-      timeZoneName: 'short',
-      hour12: true
-    });
-  } catch (err) {
-    console.error('Date formatting error:', err);
-    return 'N/A';
-  }
+  // A valid Date with fixed options cannot make toLocaleString throw
+  return date.toLocaleString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit',
+    timeZoneName: 'short',
+    hour12: true
+  });
 }
 
 /**
@@ -1077,13 +1073,10 @@ class NWSAlertCardEditor extends HTMLElement {
 
   set hass(hass) {
     this._hass = hass;
-    // Update all entity pickers with hass reference
-    const selectors = this.shadowRoot?.querySelectorAll('ha-selector');
-    if (selectors) {
-      selectors.forEach(selector => {
-        selector.hass = hass;
-      });
-    }
+    // Update all selectors with the hass reference (the shadow root always exists)
+    this.shadowRoot.querySelectorAll('ha-selector').forEach(selector => {
+      selector.hass = hass;
+    });
   }
 
   _fireConfigChanged() {
@@ -1215,16 +1208,8 @@ class NWSAlertCardEditor extends HTMLElement {
     selector.hass = this._hass;
     selector.required = false;
 
-    // Configure selector based on domain filter
-    if (domainFilter) {
-      if (Array.isArray(domainFilter)) {
-        selector.selector = { entity: { domain: domainFilter } };
-      } else {
-        selector.selector = { entity: { domain: domainFilter } };
-      }
-    } else {
-      selector.selector = { entity: {} };
-    }
+    // domainFilter is a domain or a list of domains; the entity selector takes either
+    selector.selector = { entity: domainFilter ? { domain: domainFilter } : {} };
 
     selector.value = value || '';
     selector.label = label;
@@ -1245,8 +1230,7 @@ class NWSAlertCardEditor extends HTMLElement {
   }
 
   render() {
-    if (!this.shadowRoot) return;
-
+    // The constructor always attaches the shadow root
     const style = document.createElement('style');
     style.textContent = `
       :host {
@@ -1537,11 +1521,12 @@ class NWSAlertCard extends HTMLElement {
     this._config = {
       title: 'NWS Weather Alert',
       update_interval: 300,
-      email: sanitizedEmail,
       show_severity_markers: true,
       show_expanded: false,
       alert_trigger_cooldown: 60,
-      ...config
+      ...config,
+      // After the spread: the raw config email must not replace the sanitized one
+      email: sanitizedEmail
     };
 
     // Validate action entity IDs if provided
