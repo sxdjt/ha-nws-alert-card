@@ -1720,6 +1720,12 @@ class NWSAlertCard extends HTMLElement {
     // when setConfig fires a fetch before the zone is ready.
     if (!zone) return;
 
+    // Only the newest fetch of a connected card may render or act: an answer for a
+    // zone the card has since left, or one that lands after the card was removed,
+    // would otherwise repaint the card, run severity actions and set the alert entity.
+    const seq = this._fetchSeq = (this._fetchSeq ?? 0) + 1;
+    const current = () => seq === this._fetchSeq && this.isConnected;
+
     const url = `https://api.weather.gov/alerts/active/zone/${zone}`;
 
     try {
@@ -1736,6 +1742,7 @@ class NWSAlertCard extends HTMLElement {
       }
 
       const data = await response.json();
+      if (!current()) return;
 
       // Ensure features array exists
       const features = data.features || [];
@@ -1779,6 +1786,7 @@ class NWSAlertCard extends HTMLElement {
       this._retryCount = 0;
 
     } catch (err) {
+      if (!current()) return;
       console.error('NWS fetch error:', err);
 
       if (this._retryCount < MAX_RETRIES) {

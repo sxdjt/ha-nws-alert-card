@@ -5,6 +5,7 @@ All notable changes to the NWS Alert Card will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- An alert update that arrived late, after the card had moved to another zone (location from an entity, or a new config) or after it had been removed, still redrew the card, ran severity actions and set the alert entity for the old zone. Only the newest update of a card on screen is used now.
 - An alert without a `properties` object renders as Unknown Event instead of breaking the update, which then retried and showed "Unable to fetch weather alerts".
 - The `email` is validated and normalized before it goes into the User-Agent header, as intended. The raw value overwrote the sanitized one, so spaces or an invalid address were sent as typed, and a line break made every request fail.
 - Visual editor: after a YAML edit, the fields show the new config. The editor only drew its fields once, so it kept showing the old values.

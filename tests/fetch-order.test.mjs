@@ -17,7 +17,7 @@ function deferredFetch() {
 
 const events = (card) => items(card).map((el) => el.querySelector('.alert-title, .event, h3')?.textContent ?? el.textContent);
 
-test('N-B13: an answer for the zone the card has left is dropped', { todo: true }, async () => {
+test('N-B13: an answer for the zone the card has left is dropped', async () => {
   api.reset();
   api.alerts('WAZ001', []).zoneName('WAZ001', 'One').zoneName('WAZ002', 'Two');
   const hass = makeHass({ 'input_text.nws': { state: '' } });
@@ -41,7 +41,7 @@ test('N-B13: an answer for the zone the card has left is dropped', { todo: true 
   assert.ok(hass.calls.slice(before).every((c) => !JSON.stringify(c.data).includes('Zone One')), 'no alert entity update for the old zone');
 });
 
-test('N-B13: an answer that arrives after the card was removed changes nothing', { todo: true }, async () => {
+test('N-B13: an answer that arrives after the card was removed changes nothing', async () => {
   api.reset();
   api.alerts('WAZ003', []).zoneName('WAZ003', 'Three');
   const hass = makeHass({ 'input_text.nws': { state: '' } });
@@ -58,4 +58,27 @@ test('N-B13: an answer that arrives after the card was removed changes nothing',
   }
   assert.equal(hass.calls.length, before, 'no service calls from a removed card');
   assert.equal(items(card).length, 0);
+});
+
+test('N-B13: a stale failure neither retries nor shows an error', async () => {
+  api.reset();
+  api.alerts('WAZ004', [alert({ event: 'Shown Warning' })]).zoneName('WAZ004', 'Four');
+  const card = await makeCard({ nws_zone: 'WAZ004' });
+  const real = globalThis.fetch;
+  let reject;
+  globalThis.fetch = () => new Promise((_, r) => { reject = r; });
+  const error = console.error;
+  console.error = () => {};
+  try {
+    card._fetchAlerts();
+    globalThis.fetch = real;
+    await card._fetchAlerts();                    // newer, succeeds
+    reject(new Error('late failure'));
+    await settle();
+  } finally {
+    globalThis.fetch = real;
+    console.error = error;
+  }
+  assert.equal(card._retryTimeout ?? null, null);
+  assert.match(events(card).join(' '), /Shown Warning/);
 });
