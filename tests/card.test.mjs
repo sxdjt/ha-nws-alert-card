@@ -147,7 +147,7 @@ describe('polling', () => {
 
 describe('setConfig on an existing card', () => {
   // N10 (B8): HA calls setConfig on the dashboard card when an edit is saved
-  test('a new zone and title take effect without a reload', { todo: 'zone is resolved only in connectedCallback; unchanged alerts skip the re-render' }, async () => {
+  test('a new zone and title take effect without a reload', async () => {
     quiet();
     api.alerts('WAZ558', [alert()]).alerts('COZ097', []);
     const card = await makeCard({ nws_zone: 'WAZ558', title: 'Old' });
@@ -155,6 +155,27 @@ describe('setConfig on an existing card', () => {
     await settle();
     assert.equal(card._zoneResolver.currentZone, 'COZ097');
     assert.match(content(card).querySelector('.card-title').textContent, /New/);
+  });
+
+  test('same zone: new title and markers show right away, without a new action', async () => {
+    quiet();
+    api.alerts('WAZ558', [alert({ severity: 'Severe' })]);
+    const hass = makeHass();
+    const card = await makeCard({ nws_zone: 'WAZ558', title: 'Old', severe_action: 'script.s', alert_trigger_cooldown: 0 }, hass);
+    card.setConfig({ nws_zone: 'WAZ558', title: 'New', show_severity_markers: false, severe_action: 'script.s', alert_trigger_cooldown: 0 });
+    await settle();
+    assert.match(content(card).querySelector('.card-title').textContent, /New/);
+    assert.equal(card.shadowRoot.querySelectorAll('.danger-marker').length, 0);
+    assert.equal(hass.calls.length, 1, 'unchanged alerts must not re-trigger');
+  });
+
+  test('a new config that cannot resolve a zone shows the error', async () => {
+    quiet();
+    api.alerts('WAZ558', []);
+    const card = await makeCard({ nws_zone: 'WAZ558' });
+    card.setConfig({ latitude: 'sensor.nope', longitude: 'sensor.nope' });
+    await settle();
+    assert.match(content(card).textContent, /Unable to determine NWS zone/);
   });
 });
 

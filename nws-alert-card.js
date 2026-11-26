@@ -1611,6 +1611,37 @@ class NWSAlertCard extends HTMLElement {
       applyColorStyles(this._content, this._config);
     }
 
+    // HA calls setConfig again on the card already on the dashboard when an edit is
+    // saved. connectedCallback (which resolves the zone) does not run again then.
+    const reconfigure = this._configured && this.isConnected;
+    this._configured = true;
+    if (reconfigure) {
+      this._applyNewConfig();
+      return;
+    }
+    this._clearAndSetInterval();
+  }
+
+  // A new config on a running card: re-resolve the zone (location settings may have
+  // changed), repaint the cached alerts with the new title and display options, then
+  // fetch and restart polling with the new interval.
+  async _applyNewConfig() {
+    const zone = await this._zoneResolver.getActiveZone(this._config, this._hass);
+    if (!zone) {
+      this._zoneResolver.currentZone = null;
+      this._renderContent(
+        `<h2 class="card-title">${escapeHtml(this._config.title)}</h2>` +
+        '<div class="error-message">Unable to determine NWS zone. Check configuration.</div>'
+      );
+      return;
+    }
+    if (zone !== this._zoneResolver.currentZone) {
+      this._zoneResolver.currentZone = zone;
+      this._zoneResolver.zoneName = null;
+      this._fetchZoneNameAndRerender();
+    } else if (!this._content.innerHTML.includes('Loading')) {
+      this._renderAlerts(Array.from(this._lastAlertIds).map(id => this._alertsCache.get(id)).filter(Boolean));
+    }
     this._clearAndSetInterval();
   }
 
