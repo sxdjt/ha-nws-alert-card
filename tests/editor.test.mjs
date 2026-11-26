@@ -31,9 +31,17 @@ describe('limits', () => {
 
 describe('setConfig after the first render', () => {
   // A11 (B10): render-once editor
-  test('a YAML edit shows in the visual editor', { todo: 'setConfig renders only once, fields stay stale' }, async () => {
+  test('a YAML edit shows in the visual editor', async () => {
     const editor = await makeEditor({ nws_zone: 'WAZ558', title: 'Old' });
     editor.setConfig({ nws_zone: 'WAZ558', title: 'New' });
     assert.equal(control(editor, 'Card Title').value, 'New');
+  });
+
+  test('HA handing back the editor\'s own change does not rebuild it (focus is kept)', async () => {
+    const editor = await makeEditor({ nws_zone: 'WAZ558' });
+    const field = control(editor, 'Card Title');
+    fireValue(field, 'Typing');
+    editor.setConfig(lastConfig(editor));
+    assert.ok(control(editor, 'Card Title') === field, 'title field was rebuilt');
   });
 });

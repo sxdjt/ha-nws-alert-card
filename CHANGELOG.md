@@ -5,6 +5,7 @@ All notable changes to the NWS Alert Card will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- Visual editor: after a YAML edit, the fields show the new config. The editor only drew its fields once, so it kept showing the old values.
 - Visual editor: font size fields are limited to 8-48 (the card ignored other values), Update Interval to at least 60 seconds and Cooldown Period to at least 0.
 - A saved edit takes effect on the dashboard without a page reload. Home Assistant reuses the card, which kept its old zone, and only redrew the title and display options when the alerts themselves changed.
 - Severity actions no longer run when one of several alerts expires. Any change to the set of alerts triggered the action; now only a new alert or a severity increase does, as documented.
