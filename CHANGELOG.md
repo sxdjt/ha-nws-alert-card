@@ -5,6 +5,7 @@ All notable changes to the NWS Alert Card will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- An `update_interval` of 0, a negative number or text no longer polls the NWS API continuously; it uses the 300-second default. Values below 60 seconds use 60.
 - Coordinates typed into the visual editor work. The Latitude and Longitude fields save text, and the card treated every text value as an entity ID, so `47.6062` never resolved to a zone. A value that is a plain number is now used as a number.
 
 ### Security

@@ -99,7 +99,7 @@ describe('location', () => {
 
 describe('polling', () => {
   // N4 (B5): update_interval 0 / negative / non-number polls without delay
-  test('an invalid update_interval does not poll continuously', { todo: 'setInterval(fn, 0) for 0, negative or NaN' }, async () => {
+  test('an invalid update_interval does not poll continuously', async () => {
     quiet();
     mock.timers.enable({ apis: ['setInterval'] });
     api.alerts('WAZ558', []);
@@ -109,6 +109,29 @@ describe('polling', () => {
       assert.ok(card._config.update_interval >= 60, `update_interval ${update_interval} -> ${card._config.update_interval}`);
       card.disconnectedCallback();
     }
+  });
+
+  test('update_interval: below 60 uses 60, a numeric string is accepted, invalid uses 300', () => {
+    quiet();
+    mock.timers.enable({ apis: ['setInterval'] });
+    const got = [10, '120', 0, 'abc'].map((update_interval) => {
+      const card = document.createElement('nws-alert-card');
+      card.setConfig({ nws_zone: 'WAZ558', update_interval });
+      card.disconnectedCallback();
+      return card._config.update_interval;
+    });
+    assert.deepEqual(got, [60, 120, 300, 300]);
+  });
+
+  test('polls on the interval while visible', async () => {
+    quiet();
+    mock.timers.enable({ apis: ['setInterval'] });
+    api.alerts('WAZ558', []);
+    await makeCard({ nws_zone: 'WAZ558', update_interval: 60 });
+    const before = api.count('/alerts/');
+    mock.timers.tick(60000);
+    await settle();
+    assert.equal(api.count('/alerts/'), before + 1);
   });
 });
 

@@ -101,7 +101,7 @@ email: your-email@example.com  # Recommended: contact info the NWS API asks for
 | `title_color` | string | No | `inherit` | CSS color for the card title |
 | `title_font_size` | number | No | `20` | Card title font size in pixels (8-48) |
 | `title` | string | No | `NWS Weather Alert` | Card title |
-| `update_interval` | number | No | `300` | Seconds between alert checks |
+| `update_interval` | number | No | `300` | Seconds between alert checks (minimum 60; lower values use 60, invalid values use 300) |
 | `zone_color` | string | No | `secondary text` | CSS color for the zone subtitle |
 
 ### Action Triggers

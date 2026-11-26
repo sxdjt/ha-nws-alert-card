@@ -1531,6 +1531,19 @@ class NWSAlertCard extends HTMLElement {
       }
     });
 
+    // Validate update interval. setInterval treats 0, negative and NaN delays as 0, which
+    // polled the rate-limited NWS API continuously. Floor 60 s; unusable values -> 300.
+    const interval = Number(this._config.update_interval);
+    if (!Number.isFinite(interval) || interval <= 0) {
+      console.warn(`NWS Alert Card: 'update_interval' must be a positive number of seconds. Got: ${this._config.update_interval}. Using default: 300`);
+      this._config.update_interval = 300;
+    } else if (interval < 60) {
+      console.warn(`NWS Alert Card: 'update_interval' below 60 seconds (${interval}). Using 60`);
+      this._config.update_interval = 60;
+    } else {
+      this._config.update_interval = interval;
+    }
+
     // Validate cooldown value
     if (typeof this._config.alert_trigger_cooldown !== 'number' || this._config.alert_trigger_cooldown < 0) {
       console.warn(`NWS Alert Card: 'alert_trigger_cooldown' must be a positive number. Got: ${this._config.alert_trigger_cooldown}. Using default: 60`);
