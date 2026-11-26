@@ -273,6 +273,14 @@ describe('alert rendering', () => {
     assert.equal(card.shadowRoot.querySelectorAll('.description').length, 1);
   });
 
+  test('an alert without an event name still names its link and toggle', async () => {
+    quiet();
+    api.alerts('WAZ558', [alert({ event: undefined, description: 'w'.repeat(300) })]);
+    const card = await makeCard({ nws_zone: 'WAZ558', show_expanded: true });
+    assert.match(card.shadowRoot.querySelector('.toggle').textContent, /Show less: Unknown Event/);
+    assert.match(card.shadowRoot.querySelector('a').textContent, /Read full alert: Unknown Event \(opens in new tab\)/);
+  });
+
   test('an alert without properties renders as Unknown Event', async () => {
     quiet();
     api.alerts('WAZ558', [{ id: 'bare' }, alert({ event: 'Tornado Warning' })]);

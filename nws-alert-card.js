@@ -1208,8 +1208,9 @@ class NWSAlertCardEditor extends HTMLElement {
     selector.hass = this._hass;
     selector.required = false;
 
-    // domainFilter is a domain or a list of domains; the entity selector takes either
-    selector.selector = { entity: domainFilter ? { domain: domainFilter } : {} };
+    // domainFilter is a domain or a list of domains; the entity selector takes either.
+    // Every picker in this editor is filtered.
+    selector.selector = { entity: { domain: domainFilter } };
 
     selector.value = value || '';
     selector.label = label;

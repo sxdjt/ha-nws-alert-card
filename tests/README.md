@@ -27,7 +27,17 @@ IMPORTANT: never pass a DOM node to `assert` (`assert.equal(el, null)`, `assert.
 npm run coverage
 ```
 
-The target is 100% function and branch coverage of `nws-alert-card.js`.
+Every function and every branch in `nws-alert-card.js` is covered (95/95 functions, 391/391 branches). Keep both at 100%: a change that adds a function or branch should add the test that covers it. For a per-line list of gaps, add `--test-reporter=lcov --test-reporter-destination=<file>` and look for `FNDA:0` and `BRDA:...,0` lines.
+
+## Files
+
+| File | Covers |
+|------|--------|
+| `card.test.mjs` | Registration, defaults, rendering, escaping of API values, focus after toggling, coordinates (numeric strings, entities, Points failure fallback, zone normalization), polling interval, `setConfig` on a running card, action triggers on new vs removed alerts |
+| `card-lifecycle.test.mjs` | Card picker and sizing, every `setConfig` validation, connect/disconnect, entity location changes, tab visibility, fetch retries and backoff, the alert entity (priority order, 255-character limit), alert rendering variants |
+| `subsystems.test.mjs` | `ZoneResolver` (mobile detection, coordinate resolution, Points lookup and cache, active zone, zone name, debounced entity updates) and `ActionManager` (ranking, trigger decisions, script vs automation, cooldown, `localStorage` errors, queue) |
+| `editor.test.mjs` | Title, number limits, `setConfig` after the first render |
+| `editor-fields.test.mjs` | Every field type, initial values, entity picker domains, color validation, `hass` propagation |
 
 ## Known issues
 

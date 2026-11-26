@@ -212,11 +212,16 @@ describe('ActionManager', () => {
     const failing = { callService: async () => { throw new Error('nope'); } };
     await am.triggerSeverityAction('Minor', { minor_action: 'script.m', alert_trigger_cooldown: 5 }, failing, 'Z');
     assert.equal(am._actionInProgress, false);
-    mock.method(localStorage.__proto__, 'getItem', () => { throw new Error('denied'); });
-    mock.method(localStorage.__proto__, 'setItem', () => { throw new Error('denied'); });
-    const hass = makeHass();
-    await am.triggerSeverityAction('Minor', { minor_action: 'script.m', alert_trigger_cooldown: 5 }, hass, 'Z');
-    assert.equal(hass.calls.length, 1);
+    // The card reads the global localStorage; swap in one that refuses (private mode)
+    const real = globalThis.localStorage;
+    globalThis.localStorage = { getItem() { throw new Error('denied'); }, setItem() { throw new Error('denied'); } };
+    try {
+      const hass = makeHass();
+      await am.triggerSeverityAction('Minor', { minor_action: 'script.m', alert_trigger_cooldown: 5 }, hass, 'Z');
+      assert.equal(hass.calls.length, 1);
+    } finally {
+      globalThis.localStorage = real;
+    }
   });
 
   test('a trigger while one is running is queued and runs after it', async () => {
