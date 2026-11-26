@@ -273,6 +273,13 @@ describe('alert rendering', () => {
     assert.equal(card.shadowRoot.querySelectorAll('.description').length, 1);
   });
 
+  test('an alert without properties renders as Unknown Event', async () => {
+    quiet();
+    api.alerts('WAZ558', [{ id: 'bare' }, alert({ event: 'Tornado Warning' })]);
+    const card = await makeCard({ nws_zone: 'WAZ558' });
+    assert.deepEqual(items(card).map((i) => i.querySelector('h3').textContent.trim()), ['Tornado Warning', 'Unknown Event']);
+  });
+
   test('alerts are listed in NWS priority order; unknown types last', async () => {
     quiet();
     api.alerts('WAZ558', [alert({ event: 'Made Up' }), alert({ event: 'Wind Advisory' }), { id: 'p', properties: { event: undefined } }, alert({ event: 'Tornado Warning' })]);

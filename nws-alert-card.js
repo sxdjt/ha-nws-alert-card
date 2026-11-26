@@ -1813,7 +1813,9 @@ class NWSAlertCard extends HTMLElement {
       // Sort alerts by official NWS priority order
       const sortedAlerts = sortAlertsByPriority(alerts);
       sortedAlerts.forEach(alert => {
-        const p = alert.properties;
+        // Sorting, severity tracking and the alert entity already allow a feature with
+        // no properties object; rendering must too, or the fetch fails and retries
+        const p = alert.properties || {};
         const alertId = alert.id;
         // Every API value below is escaped; the class comes from a fixed list
         const safeId = escapeHtml(alertId);
