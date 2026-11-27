@@ -1051,6 +1051,16 @@ class ZoneResolver {
 // ha-selector for entity pickers. ha-textfield broke in HA 2026.5.1 (see v2.7.4).
 // Accessibility rules follow docs/card-compatibility-guide.md in the monorepo.
 
+
+// A number field's value for the config, or undefined to remove the key. HA's number
+// selector sends undefined when a field is cleared (not ''), and Number(undefined) is NaN,
+// which saved as `.nan` in the YAML; null would become 0.
+function editorNumber(value) {
+  if (value === '' || value === null || value === undefined) return undefined;
+  const n = Number(value);
+  return Number.isFinite(n) ? n : undefined;
+}
+
 class NWSAlertCardEditor extends HTMLElement {
   constructor() {
     super();
@@ -1120,9 +1130,7 @@ class NWSAlertCardEditor extends HTMLElement {
     selector.value = value ?? '';
     selector.addEventListener('value-changed', (e) => {
       e.stopPropagation();
-      const newValue = type === 'number' ?
-        (e.detail.value === '' ? undefined : Number(e.detail.value)) :
-        e.detail.value;
+      const newValue = type === 'number' ? editorNumber(e.detail.value) : e.detail.value;
       this._valueChanged(field, newValue);
     });
 

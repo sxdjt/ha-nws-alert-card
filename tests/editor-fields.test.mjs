@@ -23,6 +23,16 @@ describe('editor fields', () => {
     assert.equal('alert_entity' in lastConfig(editor), false);
   });
 
+  // Found on ha-test (2026-11-26): HA's number selector sends undefined when a field is cleared
+  test('number fields cleared the way HA does (undefined) or left non-numeric remove the key', async () => {
+    const editor = await makeEditor({ nws_zone: 'WAZ558', update_interval: 600, title_font_size: 18, alert_trigger_cooldown: 5 });
+    for (const cleared of [undefined, null, 'abc']) {
+      for (const label of ['Update Interval', 'Card Title Font Size', 'Cooldown Period']) fireValue(control(editor, label), cleared);
+      const c = lastConfig(editor);
+      assert.deepEqual(['update_interval' in c, 'title_font_size' in c, 'alert_trigger_cooldown' in c], [false, false, false], String(cleared));
+    }
+  });
+
   test('fields start from the config; markers default on', async () => {
     const editor = await makeEditor({ nws_zone: 'WAZ558', title_font_size: 18, show_expanded: true, minor_action: 'script.m' });
     assert.deepEqual([control(editor, 'NWS Zone Code').value, control(editor, 'Card Title Font Size').value, control(editor, 'Minor Severity Action').value],
