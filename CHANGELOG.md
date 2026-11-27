@@ -4,6 +4,8 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+## [2026.11.26-beta.1] - 2026-11-26 (pre-release)
+
 ### Fixed
 - Visual editor: clearing a number field (Update Interval, the font sizes, Cooldown Period) removes the setting. Home Assistant reports a cleared field as empty, which the editor saved as `NaN` (`.nan` in the YAML).
 - An alert update that arrived late, after the card had moved to another zone (location from an entity, or a new config) or after it had been removed, still redrew the card, ran severity actions and set the alert entity for the old zone. Only the newest update of a card on screen is used now.
