@@ -2023,7 +2023,7 @@ class NWSAlertCard extends HTMLElement {
 customElements.define('nws-alert-card', NWSAlertCard);
 
 console.info(
-  '%c NWS-ALERT-CARD %c 2026.11.26-beta.1 ',
+  '%c NWS-ALERT-CARD %c 2026.11.26-beta.2 ',
   'color: black; background: #F2720C; font-weight: 600;',
   'color: black; background: #00a5c9; font-weight: 600;'
 );
