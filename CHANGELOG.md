@@ -4,6 +4,9 @@ All notable changes to the NWS Alert Card will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- An unknown zone (HTTP 404) or another rejected request shows its error at once, naming the zone and the HTTP status. The card retried every failed request 3 times, so it showed "Loading..." for 35 seconds and then a general error. Timeouts (408), rate limits (429) and server errors are still retried.
+
 ## [2026.11.26-beta.1] - 2026-11-26 (pre-release)
 
 ### Fixed

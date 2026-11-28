@@ -163,6 +163,64 @@ describe('fetching', () => {
     await card._fetchZoneNameAndRerender();
     assert.equal(render.mock.callCount(), 0);
   });
+
+  test('a permanent 4xx is not retried and the error names the zone and status', async () => {
+    quiet();
+    mock.timers.enable({ apis: ['setTimeout'] });
+    api.on('/alerts/active/zone/XXZ999', () => ({ status: 404 })).on('/zones/forecast/XXZ999', () => ({ status: 404 }));
+    const card = await makeCard({ nws_zone: 'XXZ999' });
+    assert.equal(card._retryTimeout, null);
+    mock.timers.tick(35000);
+    await settle();
+    assert.equal(api.count('/alerts/'), 1);
+    assert.match(content(card).textContent, /XXZ999/);
+    assert.match(content(card).textContent, /HTTP 404/);
+    assert.doesNotMatch(content(card).textContent, /Loading/);
+    for (const status of [408, 429, 503]) {
+      api.on('/alerts/active/zone/WAZ558', () => ({ status })).zoneName('WAZ558', 'Seattle');
+      const other = await makeCard({ nws_zone: 'WAZ558' });
+      assert.ok(other._retryTimeout !== null, `HTTP ${status} must be retried`);
+    }
+  });
+
+  test('the zone name is looked up once per zone across reconnects, a 404 included', { todo: 'refetched on every connect' }, async () => {
+    quiet();
+    api.alerts('WAZ558', []).zoneName('WAZ558', 'Seattle').alerts('COZ097', []).on('/zones/forecast/COZ097', () => ({ status: 404 }));
+    const card = await makeCard({ nws_zone: 'WAZ558' });
+    const missing = await makeCard({ nws_zone: 'COZ097' });
+    for (const c of [card, missing]) {
+      c.remove();
+      document.body.appendChild(c);
+    }
+    await settle();
+    assert.equal(api.count('/zones/forecast/WAZ558'), 1);
+    assert.equal(api.count('/zones/forecast/COZ097'), 1);
+    assert.equal(content(card).querySelector('.zone-subtitle').textContent, 'Seattle');
+    assert.equal(content(missing).querySelectorAll('.zone-subtitle').length, 0);
+  });
+
+  test('reconnecting resets the retry count; a new retry replaces a pending one', { todo: 'count kept, old timer orphaned' }, async () => {
+    quiet();
+    mock.timers.enable({ apis: ['setTimeout'] });
+    api.on('/alerts/active/zone/WAZ558', () => ({ status: 503 })).zoneName('WAZ558', 'Seattle');
+    const card = await makeCard({ nws_zone: 'WAZ558' });
+    await card._fetchAlerts();
+    const n = api.count('/alerts/');
+    mock.timers.tick(5000);
+    await settle();
+    assert.equal(api.count('/alerts/'), n, 'the replaced 5 s retry must not fire');
+    for (const delay of [10000, 20000]) {
+      mock.timers.tick(delay);
+      await settle();
+    }
+    assert.equal(card._retryCount, 3);
+    card.remove();
+    assert.equal(card._retryCount, 0);
+    document.body.appendChild(card);
+    await settle();
+    assert.equal(card._retryCount, 1);
+    assert.ok(card._retryTimeout !== null, 'a reconnected card retries again');
+  });
 });
 
 describe('alert entity', () => {

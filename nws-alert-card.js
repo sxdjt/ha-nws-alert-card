@@ -129,6 +129,9 @@ const MAX_RETRIES = 3;
 const BASE_RETRY_DELAY = 5000;
 const DESCRIPTION_THRESHOLD = 200;
 
+/** A 4xx status other than 408 (timeout) and 429 (rate limit): retrying cannot help. */
+const isPermanentHttpError = (status) => status >= 400 && status < 500 && status !== 408 && status !== 429;
+
 // Zone resolver constants
 const ZONE_CACHE_TTL = 86400000;   // 24 hours in ms
 const ZONE_CACHE_MAX = 10;          // Max cached zone entries (LRU)
@@ -1748,7 +1751,9 @@ class NWSAlertCard extends HTMLElement {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const err = new Error(`HTTP ${response.status}: ${response.statusText}`);
+        err.status = response.status;
+        throw err;
       }
 
       const data = await response.json();
@@ -1798,6 +1803,19 @@ class NWSAlertCard extends HTMLElement {
     } catch (err) {
       if (!current()) return;
       console.error('NWS fetch error:', err);
+
+      // A 4xx answer (an unknown zone, a rejected request) will not change on a
+      // retry, so show it now. Timeouts (408) and rate limits (429) are retried.
+      if (isPermanentHttpError(err.status)) {
+        const reason = err.status === 404
+          ? `NWS has no zone ${escapeHtml(zone)} (HTTP 404). Check the zone configuration.`
+          : `NWS rejected the request for zone ${escapeHtml(zone)} (HTTP ${err.status}). Check the zone and email configuration.`;
+        this._renderContent(
+          `<h2 class="card-title">${escapeHtml(this._config.title)}</h2>` +
+          `<div class="error-message">${reason}</div>`
+        );
+        return;
+      }
 
       if (this._retryCount < MAX_RETRIES) {
         this._retryCount++;
