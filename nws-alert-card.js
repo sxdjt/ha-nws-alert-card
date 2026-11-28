@@ -1690,6 +1690,7 @@ class NWSAlertCard extends HTMLElement {
 
     if (this._retryTimeout) clearTimeout(this._retryTimeout);
     this._retryTimeout = null;
+    this._retryCount = 0;
 
     if (this._visibilityHandler) {
       document.removeEventListener('visibilitychange', this._visibilityHandler);
@@ -1840,7 +1841,9 @@ class NWSAlertCard extends HTMLElement {
         console.log(`Retrying in ${delay/1000}s (attempt ${this._retryCount}/${MAX_RETRIES})`);
 
         // Track the timer so a disconnect mid-backoff can cancel it,
-        // preventing a fetch from firing on a detached component.
+        // preventing a fetch from firing on a detached component. A poll or
+        // config change that fails mid-backoff replaces the pending retry.
+        if (this._retryTimeout) clearTimeout(this._retryTimeout);
         this._retryTimeout = setTimeout(() => {
           this._retryTimeout = null;
           this._fetchAlerts();

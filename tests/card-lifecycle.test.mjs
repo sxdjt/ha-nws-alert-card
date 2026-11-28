@@ -199,7 +199,7 @@ describe('fetching', () => {
     assert.equal(content(missing).querySelectorAll('.zone-subtitle').length, 0);
   });
 
-  test('reconnecting resets the retry count; a new retry replaces a pending one', { todo: 'count kept, old timer orphaned' }, async () => {
+  test('reconnecting resets the retry count; a new retry replaces a pending one', async () => {
     quiet();
     mock.timers.enable({ apis: ['setTimeout'] });
     api.on('/alerts/active/zone/WAZ558', () => ({ status: 503 })).zoneName('WAZ558', 'Seattle');
