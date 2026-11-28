@@ -117,6 +117,29 @@ describe('ZoneResolver.fetchZoneName', () => {
       assert.equal(other.zoneName, null, z);
     }
   });
+
+  test('remembers names and 404s per zone, at most ZONE_CACHE_MAX zones', async () => {
+    quiet();
+    const zones = Array.from({ length: 11 }, (_, i) => `WAZ${String(100 + i)}`);
+    for (const z of zones) api.zoneName(z, `Name ${z}`);
+    api.on('/zones/forecast/COZ097', () => ({ status: 404 }));
+    const zr = new ZoneResolver();
+    for (const z of ['COZ097', ...zones]) {
+      zr.currentZone = z;
+      zr.zoneName = null;
+      await zr.fetchZoneName('e');
+    }
+    assert.equal(zr._zoneNames.size, 10);
+    assert.equal(zr._zoneNames.has('COZ097'), false, 'oldest entry dropped');
+    assert.equal(zr._zoneNames.has('WAZ100'), false, 'second oldest dropped');
+    zr.currentZone = 'WAZ110';
+    zr.zoneName = null;
+    await zr.fetchZoneName('e');
+    assert.equal(zr.zoneName, 'Name WAZ110');
+    assert.equal(api.count('/zones/forecast/WAZ110'), 1);
+    zr.cleanup();
+    assert.equal(zr._zoneNames.size, 10, 'kept across disconnect');
+  });
 });
 
 describe('ZoneResolver.handleHassUpdate', () => {

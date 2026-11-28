@@ -183,7 +183,7 @@ describe('fetching', () => {
     }
   });
 
-  test('the zone name is looked up once per zone across reconnects, a 404 included', { todo: 'refetched on every connect' }, async () => {
+  test('the zone name is looked up once per zone across reconnects, a 404 included', async () => {
     quiet();
     api.alerts('WAZ558', []).zoneName('WAZ558', 'Seattle').alerts('COZ097', []).on('/zones/forecast/COZ097', () => ({ status: 404 }));
     const card = await makeCard({ nws_zone: 'WAZ558' });

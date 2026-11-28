@@ -747,6 +747,7 @@ class ZoneResolver {
     this._zoneCache = new Map();
     this._currentZone = null;
     this._zoneName = null;
+    this._zoneNames = new Map(); // zone -> name, or null when NWS has no such zone (kept across reconnects)
     this._isMobile = null;
     this._zoneResolveTimeout = null;
   }
@@ -976,6 +977,12 @@ class ZoneResolver {
     const zone = this._currentZone;
     if (!zone) return;
 
+    // Looked up before (a reconnect, a view switch): reuse it, a 404 included.
+    if (this._zoneNames.has(zone)) {
+      this._zoneName = this._zoneNames.get(zone);
+      return;
+    }
+
     const url = `https://api.weather.gov/zones/forecast/${zone}`;
 
     try {
@@ -989,6 +996,7 @@ class ZoneResolver {
 
       if (!response.ok) {
         console.warn(`Unable to fetch zone name: HTTP ${response.status}`);
+        if (response.status === 404) this._rememberZoneName(zone, null);
         return;
       }
 
@@ -996,10 +1004,19 @@ class ZoneResolver {
 
       if (data.properties && data.properties.name) {
         this._zoneName = data.properties.name;
+        this._rememberZoneName(zone, this._zoneName);
       }
     } catch (err) {
       console.warn('Zone name fetch error:', err);
       // Not critical, just skip showing zone name
+    }
+  }
+
+  /** Remember a zone's name (null: NWS has no such zone), dropping the oldest past ZONE_CACHE_MAX. */
+  _rememberZoneName(zone, name) {
+    this._zoneNames.set(zone, name);
+    if (this._zoneNames.size > ZONE_CACHE_MAX) {
+      this._zoneNames.delete(this._zoneNames.keys().next().value);
     }
   }
 
@@ -1042,7 +1059,7 @@ class ZoneResolver {
     this._zoneName = null;
     this._currentZone = null;
     this._isMobile = null;
-    // Keep _zoneCache for session
+    // Keep _zoneCache and _zoneNames for session
   }
 }
 
