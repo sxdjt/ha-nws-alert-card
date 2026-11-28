@@ -78,7 +78,6 @@ email: your-email@example.com  # Recommended: contact info the NWS API asks for
 
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
-| `email` | string | No (recommended) | `homeassistant@example.com` | Your email for the NWS API User-Agent header. The NWS asks API users for contact info; an invalid address is replaced by the default |
 | `latitude` | number or string | Conditional | - | Latitude coordinate (number) or entity ID (string). Required with `longitude` if `nws_zone` not specified. |
 | `longitude` | number or string | Conditional | - | Longitude coordinate (number) or entity ID (string). Required with `latitude` if `nws_zone` not specified. |
 | `nws_zone` | string | Conditional | - | Your NWS zone ID (e.g., `WAZ558`). Required if lat/lon not specified. Case and spaces are ignored; a value that is not a zone code is an error (or ignored when lat/lon are set) |
@@ -87,6 +86,7 @@ email: your-email@example.com  # Recommended: contact info the NWS API asks for
 | `alert_trigger_cooldown` | number | No | `60` | Minutes to wait before re-triggering same severity action |
 | `description_color` | string | No | `primary text` | CSS color for alert description text (e.g., `#333`, `gray`) |
 | `description_font_size` | number | No | `14` | Alert description font size in pixels (8-48) |
+| `email` | string | No (recommended) | `homeassistant@example.com` | Your email for the NWS API User-Agent header. The NWS asks API users for contact info; an invalid address is replaced by the default |
 | `extreme_action` | string | No | - | Entity ID of script/automation for Extreme severity |
 | `meta_color` | string | No | `secondary text` | CSS color for severity/urgency/certainty text |
 | `meta_font_size` | number | No | `14` | Alert metadata (time range, severity/urgency) font size in pixels (8-48) |
@@ -98,9 +98,9 @@ email: your-email@example.com  # Recommended: contact info the NWS API asks for
 | `show_expanded` | boolean | No | `false` | Show alert descriptions expanded by default. Descriptions of 200 characters or less are always shown in full, with no toggle |
 | `show_severity_markers` | boolean | No | `true` | Show colored dot markers before Extreme and Severe alert titles |
 | `times_color` | string | No | `secondary text` | CSS color for alert time range text |
+| `title` | string | No | `NWS Weather Alert` | Card title |
 | `title_color` | string | No | `inherit` | CSS color for the card title |
 | `title_font_size` | number | No | `20` | Card title font size in pixels (8-48) |
-| `title` | string | No | `NWS Weather Alert` | Card title |
 | `update_interval` | number | No | `300` | Seconds between alert checks (minimum 60; lower values use 60, invalid values use 300) |
 | `zone_color` | string | No | `secondary text` | CSS color for the zone subtitle |
 
